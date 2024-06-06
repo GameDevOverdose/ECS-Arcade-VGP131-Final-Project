@@ -1,14 +1,8 @@
 #include <iostream>
 #include <string>
-#include <set>
-#include <unordered_set>
 #include <unordered_map>
 #include <algorithm>
 #include <vector>
-#include <list>
-#include <forward_list>
-#include <queue>
-#include <stack>
 
 class Component
 {
@@ -44,38 +38,6 @@ public:
     int GetHealth(int health)
     {
         return health;
-    }
-};
-
-class VelocityComponent : public Component
-{
-public:
-    float velocity;
-
-    VelocityComponent(float velocity)
-    {
-        this->velocity = velocity;
-    }
-
-    float GetVelocity(float velocity)
-    {
-        return velocity;
-    }
-};
-
-class MaterialComponent : public Component
-{
-public:
-    std::string material;
-
-    MaterialComponent(std::string material)
-    {
-        this->material = material;
-    }
-
-    std::string GetMaterial(std::string material)
-    {
-        return material;
     }
 };
 
@@ -190,46 +152,28 @@ public:
     }
 };
 
-class Material : public System
-{
-public:
-    void ChangeMaterial(Entity *entity, std::string newMaterial)
-    {
-        MaterialComponent *materialComponent = static_cast<MaterialComponent*>(entity->getComponent(typeid(MaterialComponent).name()));
-
-        if(materialComponent != nullptr)
-        {
-            materialComponent->material = newMaterial;
-        }
-        else
-        {
-            std::cout << "MaterialComponent not found in the entity." << std::endl;
-        }
-    }
-};
-
 class ECS
 {
 private:
-    std::vector<Entity> entities;
+    std::vector<Entity*> entities;
     std::vector<System> systems;
 
 public:
     ECS(Entity entity)
     {
-        entities.push_back(entity);
+        entities.push_back(&entity);
     }
 
     void addEntities(Entity entity)
     {
-        entities.push_back(entity);
+        entities.push_back(&entity);
     }
 
     void listEntities()
     {
         for(int i = 0; i < entities.size(); ++i)
         {
-            std::cout << entities[i].getId() << std::endl;
+            std::cout << entities[i]->getId() << std::endl;
         }
     }
 };
@@ -242,13 +186,9 @@ int main()
 
     PositionComponent position(0,0,0);
     HealthComponent health(100);
-    VelocityComponent velocity(50);
-    MaterialComponent material("Fabric");
 
     entity.addComponent(&position);
     entity.addComponent(&health);
-    entity.addComponent(&velocity);
-    entity.addComponent(&material);
 
     std::vector <std::string> components= entity.listComponents();
 
@@ -258,16 +198,12 @@ int main()
 
     std::cout << "Health: " << health.health << std::endl;
 
-    std::cout << "Material: " << material.material << std::endl;
-
     System system;
     Move move;
     Health healthSys;
-    Material materialSys;
 
     move.UpdateMove(&entity, 1, 2, 3);
     healthSys.UpdateHealth(&entity, 10);
-    materialSys.ChangeMaterial(&entity, "Wood");
 
     HealthComponent *healthComp = static_cast<HealthComponent*>(entity.getComponent(typeid(HealthComponent).name()));
 
