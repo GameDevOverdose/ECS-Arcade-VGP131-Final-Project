@@ -15,13 +15,12 @@ public:
 class PositionComponent : public Component
 {
 public:
-    int positionXYZ[3];
+    int positionXY[2];
 
-    PositionComponent(int x, int y, int z)
+    PositionComponent(int x, int y)
     {
-        positionXYZ[0] = x;
-        positionXYZ[1] = y;
-        positionXYZ[2] = z;
+        positionXY[0] = x;
+        positionXY[1] = y;
     }
 };
 
@@ -38,6 +37,17 @@ public:
     int GetHealth(int health)
     {
         return health;
+    }
+};
+
+class Sprite : public Component
+{
+public:
+    std::vector <std::vector <char>> sprite;
+
+    Sprite(std::vector <std::vector <char>> sprite)
+    {
+        this->sprite = sprite;
     }
 };
 
@@ -117,15 +127,14 @@ public:
 class Move : public System
 {
 public:
-    void UpdateMove(Entity *entity, int x, int y, int z)
+    void UpdateMove(Entity *entity, int x, int y)
     {
         PositionComponent *positionComponent = static_cast<PositionComponent*>(entity->getComponent(typeid(PositionComponent).name()));
 
         if(positionComponent != nullptr)
         {
-            positionComponent->positionXYZ[0] = x;
-            positionComponent->positionXYZ[1] = y;
-            positionComponent->positionXYZ[2] = z;
+            positionComponent->positionXY[0] = x;
+            positionComponent->positionXY[1] = y;
         }
         else
         {
@@ -150,6 +159,49 @@ public:
             std::cout << "HealthComponent not found in the entity." << std::endl;
         }
     }
+};
+
+class Render : public System
+{
+public:
+    std::vector <Entity> entitiesToRender;
+
+    void UpdateRender()
+    {
+        for (Entity& entity : entitiesToRender)
+        {
+            Sprite *sprite = static_cast<Sprite*>(entity.getComponent(typeid(Sprite).name()));
+            PositionComponent *position = static_cast<PositionComponent*>(entity.getComponent(typeid(PositionComponent).name()));
+
+            if(sprite != nullptr)
+            {
+                for (int i = 0; i < position->positionXY[1]; ++i)
+                {
+                    std::cout << std::endl;
+                }
+
+                for(int i = 0; i < sprite->sprite.size(); ++i)
+                {
+                    for (int i = 0; i < position->positionXY[0]; ++i)
+                    {
+                        std::cout << " ";
+                    }
+
+                    for(int j = 0; j < sprite->sprite[i].size(); ++j)
+                    {
+                        std::cout << sprite->sprite[i][j];
+                    }
+
+                    std::cout << std::endl;
+                }
+            }
+            else
+            {
+                std::cout << "Sprite not found in the entity." << std::endl;
+            }
+        }
+    }
+
 };
 
 class ECS
@@ -180,11 +232,44 @@ public:
 
 int main()
 {
-    Entity entity(1);
+    // INITIALIZATION OF SYSTEMS
+    Move moveSys;
+    Health healthSys;
+    Render renderSys;
 
-    ECS* ecs = new ECS(entity);
+    Entity player(1);
+    Entity enemy(2);
 
-    PositionComponent position(0,0,0);
+    // INITIALIZATION OF ECS
+    ECS* ecs = new ECS(player);
+
+
+    //CODE
+    std::vector <std::vector<char>> sprite = {{'(', '-', ')'}, {'(', '0', ')'}, {'(', '_', ')'}};
+
+    PositionComponent position(0,0);
+    Sprite spriteComp(sprite);
+    player.addComponent(&position);
+    player.addComponent(&spriteComp);
+
+    moveSys.UpdateMove(&player, 10, 2);
+
+    std::vector <std::vector<char>> sprite2 = {{'(', '-', ')'}, {'(', '0', ')'}, {'(', '_', ')'}};
+
+    PositionComponent position2(0,0);
+    Sprite spriteComp2(sprite2);
+    enemy.addComponent(&position2);
+    enemy.addComponent(&spriteComp2);
+
+    moveSys.UpdateMove(&player, 20, 0);
+    moveSys.UpdateMove(&enemy, 10, 0);
+
+    renderSys.entitiesToRender.push_back(player);
+    renderSys.entitiesToRender.push_back(enemy);
+
+    renderSys.UpdateRender();
+
+    /*PositionComponent position(0,0);
     HealthComponent health(100);
 
     entity.addComponent(&position);
@@ -192,22 +277,17 @@ int main()
 
     std::vector <std::string> components= entity.listComponents();
 
-    std::cout << "X: " << position.positionXYZ[0] << std::endl;
-    std::cout << "Y: " << position.positionXYZ[1] << std::endl;
-    std::cout << "Z: " << position.positionXYZ[2] << std::endl;
+    std::cout << "X: " << position.positionXY[0] << std::endl;
+    std::cout << "Y: " << position.positionXY[1] << std::endl;
 
     std::cout << "Health: " << health.health << std::endl;
 
-    System system;
-    Move move;
-    Health healthSys;
-
-    move.UpdateMove(&entity, 1, 2, 3);
+    moveSys.UpdateMove(&entity, 1, 2, 3);
     healthSys.UpdateHealth(&entity, 10);
 
     HealthComponent *healthComp = static_cast<HealthComponent*>(entity.getComponent(typeid(HealthComponent).name()));
 
-    std::cout << typeid(HealthComponent).name() << std::endl;
+    std::cout << typeid(HealthComponent).name() << std::endl;*/
 
     return 0;
 }
