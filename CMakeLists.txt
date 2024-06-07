@@ -4,4 +4,12 @@ project(Final_Project)
 set(CMAKE_CXX_STANDARD 17)
 
 file(GLOB_RECURSE SOURCES "src/*")
-add_executable(Final_Project ${SOURCES})
+add_executable(Final_Project ${SOURCES}
+        src/Components/Component.h
+        src/Components/PositionComponent.h
+        src/Entity.h
+        src/Systems/System.h
+        src/Systems/TransformSystem.h
+        src/Components/SpriteComponent.h
+        src/Systems/RenderSystem.h
+        src/ECS.h)
