@@ -12,4 +12,14 @@ public:
     {
         this->sprite = sprite;
     }
+
+    int getHeight()
+    {
+        return sprite.size();
+    }
+
+    int getWidth()
+    {
+        return sprite[0].size();
+    }
 };

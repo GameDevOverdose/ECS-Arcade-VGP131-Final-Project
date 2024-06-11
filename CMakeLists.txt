@@ -12,4 +12,7 @@ add_executable(Final_Project ${SOURCES}
         src/Systems/TransformSystem.h
         src/Components/SpriteComponent.h
         src/Systems/RenderSystem.h
-        src/ECS.h)
+        src/ECS.h
+        src/Systems/TimeSystem.h
+        src/Systems/InputSystem.h
+        src/Systems/CollisionSystem.h)
