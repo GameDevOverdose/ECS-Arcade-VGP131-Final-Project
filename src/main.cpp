@@ -1,45 +1,23 @@
-#include <algorithm>
 #include <vector>
-#include <thread>
 
-#include "Systems/TransformSystem.h"
 #include "Systems/RenderSystem.h"
 #include "Systems/TimeSystem.h"
 #include "Systems/InputSystem.h"
+#include "Systems/MovementSystem.h"
 #include "Systems/CollisionSystem.h"
 
 #include "ECS.h"
 
 // INITIALIZATION OF SYSTEMS
-TransformSystem transformSystem;
-RenderSystem renderSystem;
-
 int screenWidth = 120;
 int screenHeight = 30;
 
 const int targetFPS = 60;
 
+RenderSystem renderSystem;
 TimeSystem timeSystem(targetFPS);
-InputSystem inputSystem;
+MovementSystem movementSystem;
 CollisionSystem collisionSystem;
-
-void MovementSystem(Entity& entity, char input, int* moveXY, CollisionSystem& collisionSystem)
-{
-    PositionComponent* position = static_cast<PositionComponent*>(entity.getComponent(typeid(PositionComponent).name()));
-
-    if (inputSystem.getKeyState(input) == InputSystem::KEY_HELD)
-    {
-        // Predict the new position
-        int predictedPosition[2] = {position->positionXY[0] + moveXY[0], position->positionXY[1] + moveXY[1]};
-
-        // Check if the new position would result in a collision
-        if (!collisionSystem.wouldCollide(entity, predictedPosition))
-        {
-            // If not, perform the move
-            transformSystem.UpdateTransform(&entity, moveXY[0], moveXY[1]);
-        }
-    }
-}
 
 void ScreenCenter(Entity& entity, int offset[])
 {
@@ -60,7 +38,7 @@ int main()
     ECS ecs(player);
 
     //CODE
-    std::vector<std::string> playerSprite = {"(-)", "(0)", "(_)"};
+    std::vector<std::string> playerSprite = {"0"};
     player.addComponent(new SpriteComponent(playerSprite));
 
     std::vector<std::string> enemySprite = {"(-)", "(0)", "(_)"};
@@ -108,6 +86,10 @@ int main()
     collisionSystem.addEntity(enemy);
 
     ScreenCenter(arcade, new int[2]{0, 0});
+    ScreenCenter(player, new int[2]{0, 0});
+
+    int movementDirection[2] = {0, 0};
+    char input = 'n';
 
     while (true)
     {
@@ -117,12 +99,54 @@ int main()
 
         //GAME HERE
 
-        MovementSystem(player, 'w', new int[2]{0, -1}, collisionSystem);
-        MovementSystem(player, 's', new int[2]{0, 1}, collisionSystem);
-        MovementSystem(player, 'a', new int[2]{-1, 0}, collisionSystem);
-        MovementSystem(player, 'd', new int[2]{1, 0}, collisionSystem);
+        /*movementSystem.MoveInput(player, 'w', new int[2]{0, -1}, collisionSystem);
+        movementSystem.MoveInput(player, 's', new int[2]{0, 1}, collisionSystem);
+        movementSystem.MoveInput(player, 'a', new int[2]{-1, 0}, collisionSystem);
+        movementSystem.MoveInput(player, 'd', new int[2]{1, 0}, collisionSystem);*/
 
-        renderSystem.RenderScreen(screenWidth, screenHeight, 47, (screenWidth - 47), 1, (screenHeight - 1));
+        movementDirection[0] = 0;
+        movementDirection[1] = 0;
+
+        if (inputSystem.getKeyState('w') == InputSystem::KEY_HELD)
+        {
+            input = 'w';
+        }
+        else if (inputSystem.getKeyState('s') == InputSystem::KEY_HELD)
+        {
+            input = 's';
+        }
+        else if (inputSystem.getKeyState('a') == InputSystem::KEY_HELD)
+        {
+            input = 'a';
+        }
+        else if (inputSystem.getKeyState('d') == InputSystem::KEY_HELD)
+        {
+            input = 'd';
+        }
+
+        // Reset the movement direction
+
+
+        // Move the player in the direction of the last input direction
+        switch(input)
+        {
+            case 'w':
+                movementDirection[1] = -1;
+                break;
+            case 's':
+                movementDirection[1] = 1;
+                break;
+            case 'a':
+                movementDirection[0] = -1;
+                break;
+            case 'd':
+                movementDirection[0] = 1;
+                break;
+        }
+
+        movementSystem.Move(player, movementDirection, collisionSystem);
+
+        renderSystem.RenderScreen(screenWidth, screenHeight, 47, (screenWidth - 46), 1, (screenHeight - 1));
 
         timeSystem.endFrame();
     }

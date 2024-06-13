@@ -15,4 +15,5 @@ add_executable(Final_Project ${SOURCES}
         src/ECS.h
         src/Systems/TimeSystem.h
         src/Systems/InputSystem.h
-        src/Systems/CollisionSystem.h)
+        src/Systems/CollisionSystem.h
+        src/Systems/MovementSystem.h)
