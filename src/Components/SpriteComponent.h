@@ -6,9 +6,9 @@
 class SpriteComponent : public Component
 {
 public:
-    std::vector <std::vector <char>> sprite;
+    std::vector <std::string> sprite;
 
-    SpriteComponent(std::vector <std::vector <char>> sprite)
+    SpriteComponent(std::vector <std::string> sprite)
     {
         this->sprite = sprite;
     }

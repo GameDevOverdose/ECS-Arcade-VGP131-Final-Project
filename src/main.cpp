@@ -41,43 +41,73 @@ void MovementSystem(Entity& entity, char input, int* moveXY, CollisionSystem& co
     }
 }
 
+void ScreenCenter(Entity& entity, int offset[])
+{
+    PositionComponent* entityPosition = static_cast<PositionComponent*>(entity.getComponent(typeid(PositionComponent).name()));
+    SpriteComponent* sprite = static_cast<SpriteComponent*>(entity.getComponent(typeid(SpriteComponent).name()));
+
+    entityPosition->positionXY[0] = (screenWidth - sprite->getWidth()) / 2 + offset[0];
+    entityPosition->positionXY[1] = (screenHeight - sprite->getHeight()) / 2 + offset[1];
+}
+
 int main()
 {
-    Entity player;
-    Entity enemy;
+    Entity player(50, 5);
+    Entity enemy(20, 0);
+    Entity arcade(1, 0);
 
     // INITIALIZATION OF ECS
     ECS ecs(player);
 
     //CODE
-    std::vector <std::vector<char>> sprite = {{'(', '-', ')'}, {'(', '0', ')'}, {'(', '_', ')'}};
+    std::vector<std::string> playerSprite = {"(-)", "(0)", "(_)"};
+    player.addComponent(new SpriteComponent(playerSprite));
 
-    PositionComponent position(0,0);
-    SpriteComponent spriteComp(sprite);
-    player.addComponent(&position);
-    player.addComponent(&spriteComp);
+    std::vector<std::string> enemySprite = {"(-)", "(0)", "(_)"};
+    enemy.addComponent(new SpriteComponent(enemySprite));
 
-    transformSystem.UpdateTransform(&player, 10, 2);
+    std::vector<std::string> arcadeMachine = {
+            "  ________________________",
+            " /________________________\\",
+            "|  ____________________  |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "| |____________________| |",
+            "/  ____________________  \\",
+            "| |                    | |",
+            "| |                    | |",
+            "| |                    | |",
+            "\\ |____________________| /",
+            "|                        |",
+            "|     ______________     |",
+            "|    |              |    |",
+            "|    |              |    |",
+            "|    |______________|    |",
+            "\\________________________/"
+    };
 
-    std::vector <std::vector<char>> sprite2 = {{'(', '-', ')'}, {'(', '0', ')'}, {'(', '_', ')'}};
+    arcade.addComponent(new SpriteComponent(arcadeMachine));
 
-    PositionComponent position2(0,0);
-    SpriteComponent spriteComp2(sprite2);
-    enemy.addComponent(&position2);
-    enemy.addComponent(&spriteComp2);
-
-    transformSystem.SetTransform(&player, 10, 0);
-    transformSystem.SetTransform(&enemy, 20, 0);
-
+    renderSystem.entitiesToRender.push_back(arcade);
     renderSystem.entitiesToRender.push_back(player);
     renderSystem.entitiesToRender.push_back(enemy);
 
     renderSystem.hideCursor();
 
-    const std::chrono::milliseconds frameDuration(1000 / targetFPS);
-
     collisionSystem.addEntity(player);
     collisionSystem.addEntity(enemy);
+
+    ScreenCenter(arcade, new int[2]{0, 0});
 
     while (true)
     {
@@ -92,7 +122,7 @@ int main()
         MovementSystem(player, 'a', new int[2]{-1, 0}, collisionSystem);
         MovementSystem(player, 'd', new int[2]{1, 0}, collisionSystem);
 
-        renderSystem.RenderScreen(screenWidth, screenHeight);
+        renderSystem.RenderScreen(screenWidth, screenHeight, 47, (screenWidth - 47), 1, (screenHeight - 1));
 
         timeSystem.endFrame();
     }

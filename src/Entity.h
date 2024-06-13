@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include "Components/Component.h"
 
+#include "Components/PositionComponent.h"
+
 class Entity
 {
 private:
@@ -13,6 +15,15 @@ private:
     std::vector<std::string> componentList;
 
 public:
+    Entity(int x, int y)
+    {
+        static int next_id = 0;
+        id = next_id++;
+
+        PositionComponent* positionComponent = new PositionComponent(x, y);
+        addComponent(positionComponent);
+    }
+
     Entity()
     {
         static int next_id = 0;

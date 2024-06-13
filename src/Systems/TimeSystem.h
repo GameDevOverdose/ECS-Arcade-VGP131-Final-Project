@@ -9,11 +9,13 @@ public:
             : targetFPS(targetFPS),
               frameDuration(1000 / targetFPS) {}
 
-    void startFrame() {
+    void startFrame()
+    {
         frameStart = std::chrono::high_resolution_clock::now();
     }
 
-    void endFrame() {
+    void endFrame()
+    {
         auto frameEnd = std::chrono::high_resolution_clock::now();
         auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart);
         sleepForRemainingFrameTime(elapsedTime);
