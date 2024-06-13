@@ -30,17 +30,34 @@ public:
         }
     }
 
-    void Move(Entity& entity, int* moveXY, CollisionSystem& collisionSystem)
+    void Move(Entity& entity, int* moveXY, CollisionSystem& collisionSystem, std::vector<int> collisionObjectsID, std::vector<int> triggerObjectsID, std::vector<int> collisions)
     {
         // Predict the new position
         PositionComponent* position = static_cast<PositionComponent*>(entity.getComponent(typeid(PositionComponent).name()));
         int predictedPosition[2] = {position->positionXY[0] + moveXY[0], position->positionXY[1] + moveXY[1]};
 
-        // Check if the new position would result in a collision
-        if (!collisionSystem.wouldCollide(entity, predictedPosition))
+        std::vector<bool> collisionVector = collisionSystem.wouldCollide(entity, predictedPosition);
+
+        for(int i = 0; i < collisionVector.size(); i++)
         {
-            // If not, perform the move
-            transformSystem.UpdateTransform(&entity, moveXY[0], moveXY[1]);
+            if(collisionVector[i] == true)
+            {
+                for(int j = 0; j < collisionObjectsID.size(); j++)
+                {
+                    if(i == collisionObjectsID[j])
+                    {
+                        transformSystem.UpdateTransform(&entity, moveXY[0], moveXY[1]);
+                    }
+                }
+
+                for(int j = 0; j < triggerObjectsID.size(); j++)
+                {
+                    if(i == triggerObjectsID[j])
+                    {
+                        return;
+                    }
+                }
+            }
         }
     }
 };

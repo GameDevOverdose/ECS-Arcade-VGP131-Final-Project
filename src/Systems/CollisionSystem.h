@@ -75,8 +75,10 @@ public:
         }
     }
 
-    bool wouldCollide(Entity& entity, int* predictedPosition)
+    std::vector<bool> wouldCollide(Entity& entity, int* predictedPosition)
     {
+        std::vector<bool> collisionVector(entities.size(), false);
+
         for (size_t i = 0; i < entities.size(); ++i)
         {
             if (entity.getId() != entities[i].getId())
@@ -99,11 +101,11 @@ public:
 
                 if (xOverlap && yOverlap)
                 {
-                    return true;
+                    collisionVector[entities[i].getId()] = true;
                 }
             }
         }
 
-        return false;
+        return collisionVector;
     }
 };
