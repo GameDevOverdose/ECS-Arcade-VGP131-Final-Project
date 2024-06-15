@@ -10,29 +10,44 @@ class Entity
 {
 private:
     int id;
+    std::string name;
 
     std::unordered_map <std::string, Component*> components;
     std::vector<std::string> componentList;
 
 public:
-    Entity(int x, int y)
+    Entity(std::string name, int x, int y)
     {
         static int next_id = 0;
         id = next_id++;
+
+        this->name = name;
 
         PositionComponent* positionComponent = new PositionComponent(x, y);
         addComponent(positionComponent);
     }
 
-    Entity()
+    Entity(std::string name)
     {
         static int next_id = 0;
         id = next_id++;
+
+        this->name = name;
     }
 
     int getId()
     {
         return id;
+    }
+
+    bool operator==(const Entity& other) const
+    {
+        return id == other.id;  // Compare entities based on their id or any other unique property
+    }
+
+    std::string getName()
+    {
+        return name;
     }
 
     template <typename T>

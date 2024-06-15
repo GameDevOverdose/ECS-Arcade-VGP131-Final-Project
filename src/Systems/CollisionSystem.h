@@ -4,15 +4,43 @@
 #include "../Components/PositionComponent.h"
 #include "../Components/SpriteComponent.h"
 #include "../Entity.h"
+#include "../ECS.h"
 
 class CollisionSystem
 {
 public:
-    std::vector<Entity> entities;
+    std::vector<Entity*> colliderEntities;
+    ECS *ecs;
 
-    void addEntity(Entity entity)
+    CollisionSystem(ECS *ecs)
     {
-        entities.push_back(entity);
+        this->ecs = ecs;
+    }
+
+    void addEntities(std::vector <Entity*> entity)
+    {
+        for (Entity* e : entity)
+        {
+            colliderEntities.push_back(e);
+        }
+    }
+
+    void addEntities(Entity *entity)
+    {
+        colliderEntities.push_back(entity);
+    }
+
+    void removeEntities(std::vector<Entity*> *entityList)
+    {
+        for (Entity* e : *entityList)
+        {
+            removeEntity(e);
+        }
+    }
+
+    void removeEntity(Entity* entity)
+    {
+        colliderEntities.erase(std::remove(colliderEntities.begin(), colliderEntities.end(), entity), colliderEntities.end());
     }
 
     bool checkCollision(Entity& entityA, Entity& entityB)
@@ -45,15 +73,15 @@ public:
 
     void UpdateDoubleCollisions(Entity& entity)
     {
-        for (size_t i = 0; i < entities.size(); ++i)
+        for (size_t i = 0; i < colliderEntities.size(); ++i)
         {
-            if (entity.getId() != entities[i].getId())
+            if (entity.getId() != colliderEntities[i]->getId())
             {
-                if (checkCollision(entity, entities[i]))
+                if (checkCollision(entity, *colliderEntities[i]))
                 {
                     // Handle collision
                     std::cout << "Collision detected between Entity " << entity.getId()
-                              << " and Entity " << entities[i].getId() << std::endl;
+                              << " and Entity " << colliderEntities[i]->getId() << std::endl;
                 }
             }
         }
@@ -61,15 +89,15 @@ public:
 
     void UpdateAllCollisions()
     {
-        for (size_t i = 0; i < entities.size(); ++i)
+        for (size_t i = 0; i < colliderEntities.size(); ++i)
         {
-            for (size_t j = i + 1; j < entities.size(); ++j)
+            for (size_t j = i + 1; j < colliderEntities.size(); ++j)
             {
-                if (checkCollision(entities[i], entities[j]))
+                if (checkCollision(*colliderEntities[i], *colliderEntities[j]))
                 {
                     // Handle collision
-                    std::cout << "Collision detected between Entity " << entities[i].getId()
-                              << " and Entity " << entities[j].getId() << std::endl;
+                    std::cout << "Collision detected between Entity " << colliderEntities[i]->getId()
+                              << " and Entity " << colliderEntities[j]->getId() << std::endl;
                 }
             }
         }
@@ -77,14 +105,14 @@ public:
 
     std::vector<bool> wouldCollide(Entity& entity, int* predictedPosition)
     {
-        std::vector<bool> collisionVector(entities.size(), false);
+        std::vector<bool> collisionVector(ecs->getEntityCount(), false);
 
-        for (size_t i = 0; i < entities.size(); ++i)
+        for (size_t i = 0; i < colliderEntities.size(); ++i)
         {
-            if (entity.getId() != entities[i].getId())
+            if (entity.getId() != colliderEntities[i]->getId())
             {
-                PositionComponent* posB = static_cast<PositionComponent*>(entities[i].getComponent(typeid(PositionComponent).name()));
-                SpriteComponent* spriteB = static_cast<SpriteComponent*>(entities[i].getComponent(typeid(SpriteComponent).name()));
+                PositionComponent* posB = static_cast<PositionComponent*>(colliderEntities[i]->getComponent(typeid(PositionComponent).name()));
+                SpriteComponent* spriteB = static_cast<SpriteComponent*>(colliderEntities[i]->getComponent(typeid(SpriteComponent).name()));
 
                 int aLeft = predictedPosition[0];
                 int aRight = predictedPosition[0] + static_cast<SpriteComponent*>(entity.getComponent(typeid(SpriteComponent).name()))->getWidth();
@@ -101,7 +129,7 @@ public:
 
                 if (xOverlap && yOverlap)
                 {
-                    collisionVector[entities[i].getId()] = true;
+                    collisionVector[colliderEntities[i]->getId()] = true;
                 }
             }
         }

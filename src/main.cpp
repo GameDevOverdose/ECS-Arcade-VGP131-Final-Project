@@ -14,10 +14,12 @@ int screenHeight = 30;
 
 const int targetFPS = 60;
 
+ECS ecs;
+
 RenderSystem renderSystem;
 TimeSystem timeSystem(targetFPS);
 MovementSystem movementSystem;
-CollisionSystem collisionSystem;
+CollisionSystem collisionSystem(&ecs);
 
 void ScreenCenter(Entity& entity, int offset[])
 {
@@ -28,14 +30,16 @@ void ScreenCenter(Entity& entity, int offset[])
     entityPosition->positionXY[1] = (screenHeight - sprite->getHeight()) / 2 + offset[1];
 }
 
+//Arcade
+Entity arcade("Arcade", 0, 0);
+Entity arcadeBoundaryLeft("Arcade Boundary-Left", 0, 0);
+Entity arcadeBoundaryRight("Arcade Boundary-Right", 0, 0);
+Entity arcadeBoundaryTop("Arcade Boundary-Top", 0, 0);
+Entity arcadeBoundaryDown("Arcade Boundary-Down", 0, 0);
+
 void CreateArcade()
 {
-    //Arcade
-    Entity arcade(0, 0);
-    Entity arcadeBoundaryLeft(0, 0);
-    Entity arcadeBoundaryRight(0, 0);
-    Entity arcadeBoundaryTop(0, 0);
-    Entity arcadeBoundaryDown(0, 0);
+    ecs.addEntities({&arcade, &arcadeBoundaryLeft, &arcadeBoundaryRight, &arcadeBoundaryTop, &arcadeBoundaryDown});
 
     std::vector<std::string> arcadeMachine = {
             "  ________________________",
@@ -94,17 +98,8 @@ void CreateArcade()
     arcadeBoundaryTop.addComponent(new SpriteComponent(boundaryHorizontal));
     arcadeBoundaryDown.addComponent(new SpriteComponent(boundaryHorizontal));
 
-    renderSystem.entitiesToRender.push_back(arcade);
-
-    renderSystem.entitiesToRender.push_back(arcadeBoundaryLeft);
-    renderSystem.entitiesToRender.push_back(arcadeBoundaryRight);
-    renderSystem.entitiesToRender.push_back(arcadeBoundaryTop);
-    renderSystem.entitiesToRender.push_back(arcadeBoundaryDown);
-
-    collisionSystem.addEntity(arcadeBoundaryLeft);
-    collisionSystem.addEntity(arcadeBoundaryRight);
-    collisionSystem.addEntity(arcadeBoundaryTop);
-    collisionSystem.addEntity(arcadeBoundaryDown);
+    renderSystem.addEntities({&arcade, &arcadeBoundaryLeft, &arcadeBoundaryRight, &arcadeBoundaryTop, &arcadeBoundaryDown});
+    collisionSystem.addEntities({&arcadeBoundaryLeft, &arcadeBoundaryRight, &arcadeBoundaryTop, &arcadeBoundaryDown});
 
     ScreenCenter(arcade, new int[2]{0, 0});
 
@@ -112,17 +107,23 @@ void CreateArcade()
     ScreenCenter(arcadeBoundaryRight, new int[2]{11, -4});
     ScreenCenter(arcadeBoundaryTop, new int[2]{0, -11});
     ScreenCenter(arcadeBoundaryDown, new int[2]{0, 3});
-
 }
 
 void spawnFruit(Entity& fruit, int areaWidthLeft, int areaWidthRight, int areaHeightTop, int areaHeightBottom, CollisionSystem& collisionSystem)
 {
     int position[2];
-    do {
+
+    std::vector<bool> wouldCollide = collisionSystem.wouldCollide(fruit, position);
+
+    do
+    {
         // Generate random position within the specified area
         position[0] = areaWidthLeft + rand() % (areaWidthRight - areaWidthLeft);
         position[1] = areaHeightTop + rand() % (areaHeightBottom - areaHeightTop);
-    } while(collisionSystem.wouldCollide(fruit, position));
+
+        wouldCollide = collisionSystem.wouldCollide(fruit, position);
+    }
+    while(std::find(wouldCollide.begin(), wouldCollide.end(), true) != wouldCollide.end());
 
     // Set the fruit's position
     PositionComponent* fruitPosition = static_cast<PositionComponent*>(fruit.getComponent(typeid(PositionComponent).name()));
@@ -135,33 +136,31 @@ int main()
     CreateArcade();
 
     //Player
-    Entity player(50, 5);
+    Entity player("Player", 0, 0);
     std::vector<std::string> playerSprite = {"0"};
     player.addComponent(new SpriteComponent(playerSprite));
 
-    Entity playerNodes(20, 0);
+    //Entity playerNodes(20, 0);
 
-    Entity fruit(0,0);
+    Entity fruit("Fruit", 0,0);
     std::vector<std::string> fruitSprite = {"*"};
     fruit.addComponent(new SpriteComponent(fruitSprite));
 
-    // INITIALIZATION OF ECS
-    ECS ecs(player);
+    ecs.addEntities({&player, &fruit});
 
-    renderSystem.entitiesToRender.push_back(player);
-    collisionSystem.addEntity(player);
+    renderSystem.addEntities({&player, &fruit});
+    collisionSystem.addEntities({&player, &fruit});
     ScreenCenter(player, new int[2]{0, 0});
-
-    // Add the fruit to the render system and collision system
-    renderSystem.entitiesToRender.push_back(fruit);
-    collisionSystem.addEntity(fruit);
-    spawnFruit(fruit, 47, screenWidth - 46, 4, screenHeight - 13, collisionSystem);
 
     int movementDirection[2] = {0, 0};
     char input = 'n';
     char lastInput = 'n';
 
     bool gameOver = false;
+
+    //ecs.listEntities();
+
+    spawnFruit(fruit, 47, screenWidth - 46, 4, screenHeight - 13, collisionSystem);
 
     renderSystem.hideCursor();
 
@@ -220,7 +219,25 @@ int main()
                 break;
         }
 
-        movementSystem.Move(player, movementDirection, collisionSystem, true, &gameOver);
+        std::vector<int> triggerObjectsID = {arcadeBoundaryLeft.getId(), arcadeBoundaryRight.getId(), arcadeBoundaryTop.getId(), arcadeBoundaryDown.getId(), fruit.getId()};
+
+        std::vector<bool> triggers = movementSystem.Move(player, movementDirection, collisionSystem, triggerObjectsID);
+
+        for (const auto &trigger : triggers)
+        {
+            std::cout << trigger << ' ';
+        }
+
+        if(triggers[fruit.getId()] == true)
+        {
+            spawnFruit(fruit, 47, screenWidth - 48, 4, screenHeight - 13, collisionSystem);
+        }
+
+        if(triggers[arcadeBoundaryLeft.getId()] || triggers[arcadeBoundaryRight.getId()] ||
+           triggers[arcadeBoundaryTop.getId()] || triggers[arcadeBoundaryDown.getId()])
+        {
+            gameOver = true;
+        }
 
         renderSystem.RenderScreen(screenWidth, screenHeight, 47, (screenWidth - 46), 1, (screenHeight - 1));
 

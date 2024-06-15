@@ -9,7 +9,33 @@
 
 class RenderSystem : public System {
 public:
-    std::vector<Entity> entitiesToRender;
+    std::vector<Entity*> entitiesToRender;
+
+    void addEntities(std::vector <Entity*> entity)
+    {
+        for (Entity* e : entity)
+        {
+            entitiesToRender.push_back(e);
+        }
+    }
+
+    void addEntities(Entity *entity)
+    {
+        entitiesToRender.push_back(entity);
+    }
+
+    void removeEntities(std::vector<Entity*> *entityList)
+    {
+        for (Entity* e : *entityList)
+        {
+            removeEntity(e);
+        }
+    }
+
+    void removeEntity(Entity* entity)
+    {
+        entitiesToRender.erase(std::remove(entitiesToRender.begin(), entitiesToRender.end(), entity), entitiesToRender.end());
+    }
 
     void hideCursor()
     {
@@ -40,8 +66,6 @@ public:
     void clearScreen()
     {
         system("cls");
-
-        //std::cout << "Clearing screen..." << std::endl;
     }
 
     void RenderScreen(int screenWidth, int screenHeight, int screenWidthLeft, int screenWidthRight, int screenHeightUpper, int screenHeightLower)
@@ -71,9 +95,9 @@ public:
             screen[i][width - 1] = '|';
         }*/
 
-        for (Entity& entity : entitiesToRender) {
-            SpriteComponent* sprite = static_cast<SpriteComponent*>(entity.getComponent(typeid(SpriteComponent).name()));
-            PositionComponent* position = static_cast<PositionComponent*>(entity.getComponent(typeid(PositionComponent).name()));
+        for (Entity *entity : entitiesToRender) {
+            SpriteComponent* sprite = static_cast<SpriteComponent*>(entity->getComponent(typeid(SpriteComponent).name()));
+            PositionComponent* position = static_cast<PositionComponent*>(entity->getComponent(typeid(PositionComponent).name()));
 
             if (sprite != nullptr && position != nullptr) {
                 int startX = position->positionXY[0];
