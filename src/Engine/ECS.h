@@ -71,4 +71,17 @@ public:
     {
         return entities.size();
     }
+
+    int getHighestEntityId()
+    {
+        int maxId = -1; // Start with an invalid ID
+
+        for (const auto& entity : entities)
+        {
+            if (entity->getId() > maxId) {
+                maxId = entity->getId();
+            }
+        }
+        return maxId;
+    }
 };

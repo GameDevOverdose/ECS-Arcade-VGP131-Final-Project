@@ -1,6 +1,6 @@
 #pragma once
 
-#include <windows.h> // for Sleep
+#include <Windows.h> // for Sleep
 
 #include "../Entity.h"
 #include "System.h"
@@ -35,6 +35,11 @@ public:
     void removeEntity(Entity* entity)
     {
         entitiesToRender.erase(std::remove(entitiesToRender.begin(), entitiesToRender.end(), entity), entitiesToRender.end());
+    }
+
+    bool hasEntity(Entity* entity)
+    {
+        return std::find(entitiesToRender.begin(), entitiesToRender.end(), entity) != entitiesToRender.end();
     }
 
     void hideCursor()

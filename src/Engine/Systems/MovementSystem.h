@@ -13,14 +13,13 @@ class MovementSystem {
 public:
     MovementSystem() = default;
 
-    std::vector<bool> MoveInput(Entity& entity, char input, int* moveXY, CollisionSystem& collisionSystem, std::vector<int> triggerObjectsID)
+    void MoveInput(Entity& entity, char input, int* moveXY, CollisionSystem& collisionSystem, std::vector<int> triggerObjectsID, std::vector<bool> &triggers)
     {
         // Predict the new position
         PositionComponent* position = static_cast<PositionComponent*>(entity.getComponent(typeid(PositionComponent).name()));
         int predictedPosition[2] = {position->positionXY[0] + moveXY[0], position->positionXY[1] + moveXY[1]};
 
         std::vector<bool> collisionVector = collisionSystem.wouldCollide(entity, predictedPosition);
-        std::vector<bool> triggers(collisionVector.size());
 
         bool allFalseExceptTrigger = true;
 
@@ -34,10 +33,14 @@ public:
                     {
                         for(int j = 0; j < triggerObjectsID.size(); j++)
                         {
-                            if(i != triggerObjectsID[j])
+                            if(i == triggerObjectsID[j])
+                            {
+                                allFalseExceptTrigger = true;
+                                break;
+                            }
+                            else
                             {
                                 allFalseExceptTrigger = false;
-                                break;
                             }
                         }
                     }
@@ -67,8 +70,6 @@ public:
                     }
                 }
             }
-
-            return triggers;
         }
     }
 

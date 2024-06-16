@@ -12,4 +12,9 @@ public:
         positionXY[0] = x;
         positionXY[1] = y;
     }
+
+    int* getPosition()
+    {
+        return positionXY;
+    }
 };

@@ -43,6 +43,11 @@ public:
         colliderEntities.erase(std::remove(colliderEntities.begin(), colliderEntities.end(), entity), colliderEntities.end());
     }
 
+    bool hasEntity(Entity* entity)
+    {
+        return std::find(colliderEntities.begin(), colliderEntities.end(), entity) != colliderEntities.end();
+    }
+
     bool checkCollision(Entity& entityA, Entity& entityB)
     {
         PositionComponent* posA = static_cast<PositionComponent*>(entityA.getComponent(typeid(PositionComponent).name()));
@@ -103,9 +108,10 @@ public:
         }
     }
 
+
     std::vector<bool> wouldCollide(Entity& entity, int* predictedPosition)
     {
-        std::vector<bool> collisionVector(ecs->getEntityCount(), false);
+        std::vector<bool> collisionVector(ecs->getHighestEntityId() + 2, false);
 
         for (size_t i = 0; i < colliderEntities.size(); ++i)
         {
