@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
+#include <string>
 
 #include "Engine/Systems/RenderSystem.h"
 #include "Engine/Systems/TimeSystem.h"
@@ -11,6 +12,7 @@
 #include "Engine/Systems/CollisionSystem.h"
 
 #include "Engine/ECS.h"
+#include "Engine/Components/UIComponent.h"
 
 // INITIALIZATION OF SYSTEMS
 int screenWidth = 120;
@@ -28,10 +30,21 @@ CollisionSystem collisionSystem(&ecs);
 void ScreenCenter(Entity& entity, const std::array<int, 2>& offset)
 {
     PositionComponent* entityPosition = static_cast<PositionComponent*>(entity.getComponent(typeid(PositionComponent).name()));
-    SpriteComponent* sprite = static_cast<SpriteComponent*>(entity.getComponent(typeid(SpriteComponent).name()));
+    int entityWidth = 0;
+    int entityHeight = 0;
 
-    entityPosition->positionXY[0] = (screenWidth - sprite->getWidth()) / 2 + offset[0];
-    entityPosition->positionXY[1] = (screenHeight - sprite->getHeight()) / 2 + offset[1];
+    if (entity.hasComponent<SpriteComponent>()) {
+        SpriteComponent* sprite = static_cast<SpriteComponent*>(entity.getComponent(typeid(SpriteComponent).name()));
+        entityWidth = sprite->getWidth();
+        entityHeight = sprite->getHeight();
+    } else if (entity.hasComponent<UIComponent>()) {
+        UIComponent* uiComponent = static_cast<UIComponent*>(entity.getComponent(typeid(UIComponent).name()));
+        entityWidth = uiComponent->getContent().size();
+        entityHeight = 1;  // Assuming the UIComponent's content is a single line
+    }
+
+    entityPosition->positionXY[0] = (screenWidth - entityWidth) / 2 + offset[0];
+    entityPosition->positionXY[1] = (screenHeight - entityHeight) / 2 + offset[1];
 }
 
 // Arcade entities
@@ -167,11 +180,16 @@ void SnakeGameMain()
     std::vector<std::string> fruitSprite = {"*"};
     fruit.addComponent(new SpriteComponent(fruitSprite));
 
-    ecs.addEntities({&player, &fruit});
+    Entity score("Score", 0, 0);
+    score.addComponent(new UIComponent("Score: 0", 47));
 
-    renderSystem.addEntities({&player, &fruit});
+    int scoreCount = 0;
+
+    ecs.addEntities({&player, &fruit});
+    renderSystem.addEntities({&player, &fruit, &score});
     collisionSystem.addEntities({&player, &fruit});
     ScreenCenter(player, {0, 0});
+    ScreenCenter(score, {35, 0});
 
     std::array<int, 2> movementDirection = {0, 0};
     char input = 'n';
@@ -251,9 +269,20 @@ void SnakeGameMain()
         {
             spawnFruit(fruit, 47, screenWidth - 48, 4, screenHeight - 13, collisionSystem);
 
+            scoreCount++;
+
+            // Update score UI
+            UIComponent* scoreUI = static_cast<UIComponent*>(score.getComponent(typeid(UIComponent).name()));
+            scoreUI->setContent("Score: " + std::to_string(scoreCount));
+
             if(playerNodes.empty())
             {
                 playerNodes.push_back(CreatePlayerNode(lastPlayerPosition));
+            }
+            else if(playerNodes.size() == 1)
+            {
+                playerNodes.push_back(CreatePlayerNode(nodeLastPositions.back()));
+                playerNodes.push_back(CreatePlayerNode(nodeLastPositions.back()));
             }
             else
             {
@@ -306,17 +335,34 @@ void SnakeGameMain()
             gameOver = true;
         }
 
-        renderSystem.RenderScreen(screenWidth, screenHeight, 47, (screenWidth - 46), 1, (screenHeight - 1));
+        renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 1, (screenHeight - 1));
+        //renderSystem.RenderScreen(screenWidth, screenHeight, 47, (screenWidth - 46), 1, (screenHeight - 1));
+        //renderSystem.renderUI();
 
         timeSystem.endFrame();
     }
 }
 
-Entity* spawnEnemy(int screenOffset[2])
+Entity* spawnEnemy(int screenOffset[2], int enemyType)
 {
     Entity* enemy = new Entity("Enemy", 0, 0);
-    std::vector<std::string> enemySprite = {"[**]"};
-    enemy->addComponent(new SpriteComponent(enemySprite));
+
+    std::vector<std::string> enemySprite1 = {"[**]"};
+    std::vector<std::string> enemySprite2 = {"[&]"};
+    std::vector<std::string> enemySprite3 = {"[#_#]"};
+
+    if(enemyType == 1)
+    {
+        enemy->addComponent(new SpriteComponent(enemySprite1));
+    }
+    else if(enemyType == 2)
+    {
+        enemy->addComponent(new SpriteComponent(enemySprite2));
+    }
+    else
+    {
+        enemy->addComponent(new SpriteComponent(enemySprite3));
+    }
 
     std::array<int, 2> screenOffsetArray = {screenOffset[0], screenOffset[1]};
     ScreenCenter(*enemy, screenOffsetArray);
@@ -352,7 +398,7 @@ public:
         bulletActive = true;
     }
 
-    void moveBullet(std::vector<Entity*> &enemies)
+    void moveBullet(std::vector<std::vector<Entity*>> &enemies, int& enemySpeed, int& enemySpeedIncrease)
     {
         if (!bulletActive) return;
 
@@ -363,22 +409,33 @@ public:
 
         for (int i = 0; i < enemies.size(); ++i)
         {
-            triggerObjectsID.push_back(enemies[i]->getId());
+            for (int j = 0; j < enemies[i].size(); ++j)
+            {
+                triggerObjectsID.push_back(enemies[i][j]->getId());
+            }
         }
 
         std::vector<bool> triggers = movementSystem.Move(*bulletEntity, movementDirection, collisionSystem, triggerObjectsID);
 
         for (int i = 0; i < enemies.size(); ++i)
         {
-            if(triggers[enemies[i]->getId()])
+            for (int j = 0; j < enemies[i].size(); ++j)
             {
-                ecs.removeEntity(enemies[i]);
-                renderSystem.removeEntity(enemies[i]);
-                collisionSystem.removeEntity(enemies[i]);
+                if(triggers[enemies[i][j]->getId()])
+                {
+                    ecs.removeEntity(enemies[i][j]);
+                    renderSystem.removeEntity(enemies[i][j]);
+                    collisionSystem.removeEntity(enemies[i][j]);
 
-                enemies.erase(enemies.begin() + i);
+                    enemies[i].erase(enemies[i].begin() + j);
 
-                deactivateBullet();
+                    deactivateBullet();
+
+                    if(enemySpeed > 1)
+                    {
+                        enemySpeed -= enemySpeedIncrease;
+                    }
+                }
             }
         }
 
@@ -411,11 +468,11 @@ void HandlePlayerInput(Entity& player, Bullet& bullet)
     }
 }
 
-void MoveEnemies(std::vector<Entity*>& rowEnemies, int enemiesMovementDirection[], int& enemyMoveCounter, bool& gameOver, Entity& player)
+void MoveEnemies(std::vector<Entity*>& rowEnemies, int enemiesMovementDirection[], int& enemyMoveCounter, int& enemySpeed, bool& gameOver, Entity& player)
 {
     enemyMoveCounter++;
 
-    if (enemyMoveCounter >= 5) {
+    if (enemyMoveCounter >= enemySpeed) {
         for (int i = 0; i < rowEnemies.size(); ++i)
         {
             std::vector<int> triggerObjectsID = {arcadeBoundaryLeft.getId(), arcadeBoundaryRight.getId()};
@@ -453,7 +510,7 @@ void MoveEnemies(std::vector<Entity*>& rowEnemies, int enemiesMovementDirection[
                 }
             }
 
-            if (enemyTriggers[player.getId()])
+            if (enemyTriggers[player.getId()] || enemyTriggers[arcadeBoundaryDown.getId()])
             {
                 gameOver = true;
             }
@@ -469,23 +526,36 @@ void ETGameMain()
     std::vector<std::string> playerSprite = {"[-]"};
     player.addComponent(new SpriteComponent(playerSprite));
 
-    Entity fruit("Fruit", 0, 0);
-    std::vector<std::string> fruitSprite = {"*"};
-    fruit.addComponent(new SpriteComponent(fruitSprite));
-
-    ecs.addEntities({&player});
-    renderSystem.addEntities({&player, &fruit});
-    collisionSystem.addEntities({&player, &fruit});
+    ecs.addEntities(&player);
+    renderSystem.addEntities(&player);
+    collisionSystem.addEntities(&player);
     ScreenCenter(player, {0, 2});
 
     int numberOfEnemies = 6;
-    std::vector<Entity*> rowEnemies;
-    int enemiesMovementDirection[2] = {-1, 0};
+    //std::vector<Entity*> rowEnemies;
+    std::vector<Entity*> rowEnemies1;
+    std::vector<Entity*> rowEnemies2;
+    std::vector<Entity*> rowEnemies3;
+    int enemiesMovementDirection1[2] = {-1, 0};
+    int enemiesMovementDirection2[2] = {1, 0};
+    int enemiesMovementDirection3[2] = {-1, 0};
     int enemyMoveCounter = 0;
+    int enemySpeed = 10;
+    int enemySpeedIncrease = 1;
 
-    for (int i = 0; i < numberOfEnemies / 2; ++i)
+    for (int i = 0; i < 3; ++i)
     {
-        rowEnemies.push_back(spawnEnemy(new int[2]{6 - (i * 6), -10}));
+        rowEnemies1.push_back(spawnEnemy(new int[2]{6 - (i * 6), -10}, 1));
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        rowEnemies2.push_back(spawnEnemy(new int[2]{6 - (i * 4), -8}, 2));
+    }
+
+    for (int i = 0; i < 2; ++i)
+    {
+        rowEnemies3.push_back(spawnEnemy(new int[2]{6 - (i * 12), -6}, 3));
     }
 
     ecs.listEntities();
@@ -504,15 +574,24 @@ void ETGameMain()
         HandlePlayerInput(player, bullet);
 
         // Move enemies
-        MoveEnemies(rowEnemies, enemiesMovementDirection, enemyMoveCounter, gameOver, player);
+        MoveEnemies(rowEnemies1, enemiesMovementDirection1, enemyMoveCounter, enemySpeed, gameOver, player);
+        MoveEnemies(rowEnemies2, enemiesMovementDirection2, enemyMoveCounter, enemySpeed, gameOver, player);
+        MoveEnemies(rowEnemies3, enemiesMovementDirection3, enemyMoveCounter, enemySpeed, gameOver, player);
 
-        // Move bullet and check collisions
-        bullet.moveBullet(rowEnemies);
+        std::vector<std::vector<Entity*>> enemies = {rowEnemies1, rowEnemies2, rowEnemies3};
+        bullet.moveBullet(enemies, enemySpeed, enemySpeedIncrease);
 
         // Render screen
         renderSystem.RenderScreen(screenWidth, screenHeight, 47, (screenWidth - 46), 1, (screenHeight - 1));
 
         timeSystem.endFrame();
+    }
+
+    if(gameOver)
+    {
+        std::cout << "Game Over!" << std::endl;
+
+        timeSystem.sleepFor(std::chrono::milliseconds(2000));
     }
 
     renderSystem.showCursor();

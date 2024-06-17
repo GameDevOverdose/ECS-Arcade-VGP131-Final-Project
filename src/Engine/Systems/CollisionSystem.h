@@ -111,7 +111,7 @@ public:
 
     std::vector<bool> wouldCollide(Entity& entity, int* predictedPosition)
     {
-        std::vector<bool> collisionVector(ecs->getHighestEntityId() + 2, false);
+        std::vector<bool> collisionVector(ecs->getHighestEntityId() + 3, false);
 
         for (size_t i = 0; i < colliderEntities.size(); ++i)
         {

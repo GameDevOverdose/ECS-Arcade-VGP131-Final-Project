@@ -66,6 +66,12 @@ public:
         componentList.emplace_back(typeid(T).name());
     }
 
+    template <typename T>
+    bool hasComponent() const
+    {
+        return components.count(typeid(T).name()) > 0;
+    }
+
     Component* getComponent(const std::string& componentType)
     {
         Component* component = components[componentType];

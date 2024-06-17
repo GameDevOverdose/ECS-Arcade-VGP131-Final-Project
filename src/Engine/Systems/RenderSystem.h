@@ -6,6 +6,7 @@
 #include "System.h"
 #include "../Components/PositionComponent.h"
 #include "../Components/SpriteComponent.h"
+#include "../Components/UIComponent.h"
 
 class RenderSystem : public System {
 public:
@@ -100,28 +101,45 @@ public:
             screen[i][width - 1] = '|';
         }*/
 
-        for (Entity *entity : entitiesToRender) {
-            SpriteComponent* sprite = static_cast<SpriteComponent*>(entity->getComponent(typeid(SpriteComponent).name()));
+        for (Entity *entity : entitiesToRender)
+        {
             PositionComponent* position = static_cast<PositionComponent*>(entity->getComponent(typeid(PositionComponent).name()));
+            std::vector<std::string> entitySprite;
 
-            if (sprite != nullptr && position != nullptr) {
+            if (entity->hasComponent<SpriteComponent>())
+            {
+                SpriteComponent* sprite = static_cast<SpriteComponent*>(entity->getComponent(typeid(SpriteComponent).name()));
+                entitySprite = sprite->sprite;
+            } else if (entity->hasComponent<UIComponent>())
+            {
+                UIComponent* uiComponent = static_cast<UIComponent*>(entity->getComponent(typeid(UIComponent).name()));
+                entitySprite = { uiComponent->getContent() };  // Treat the UIComponent's content as a sprite with a single row
+            }
+
+            if (!entitySprite.empty() && position != nullptr)
+            {
                 int startX = position->positionXY[0];
                 int startY = position->positionXY[1];
 
-                for (int i = 0; i < sprite->sprite.size(); ++i) {
+                for (int i = 0; i < entitySprite.size(); ++i)
+                {
                     int y = startY + i - screenHeightUpper;
 
-                    for (int j = 0; j < sprite->sprite[i].size(); ++j) {
+                    for (int j = 0; j < entitySprite[i].size(); ++j)
+                    {
                         int x = startX + j - screenWidthLeft;
 
-                        if (x >= 0 && x < width && y >= 0 && y < height) {
-                            screen[y][x] = sprite->sprite[i][j];
+                        if (x >= 0 && x < width && y >= 0 && y < height)
+                        {
+                            screen[y][x] = entitySprite[i][j];
                         }
                     }
                 }
-            } else {
-                if (sprite == nullptr) {
-                    std::cerr << "Sprite not found in the entity." << std::endl;
+            }
+            else
+            {
+                if (entitySprite.empty()) {
+                    std::cerr << "Sprite or UIComponent not found in the entity." << std::endl;
                 }
 
                 if (position == nullptr) {
@@ -178,37 +196,29 @@ public:
         previousScreen = fullScreen;
     }
 
-    void RenderEntityFrame(Entity& entity)
-    {
-#ifdef _WIN32
-        // Enable ANSI escape codes on Windows
-        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        DWORD dwMode = 0;
-        GetConsoleMode(hOut, &dwMode);
-        dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-        SetConsoleMode(hOut, dwMode);
-#endif
+    void renderUI() {
+        for (Entity* entity : entitiesToRender) {
+            if (entity->hasComponent<UIComponent>()) {
+                UIComponent* uiComponent = static_cast<UIComponent*>(entity->getComponent(typeid(UIComponent).name()));
+                PositionComponent* position = static_cast<PositionComponent*>(entity->getComponent(typeid(PositionComponent).name()));
 
-        SpriteComponent* sprite = static_cast<SpriteComponent*>(entity.getComponent(typeid(SpriteComponent).name()));
-        PositionComponent* position = static_cast<PositionComponent*>(entity.getComponent(typeid(PositionComponent).name()));
+                if (uiComponent != nullptr && position != nullptr) {
+                    int startX = position->positionXY[0];
+                    int startY = position->positionXY[1];
+                    std::string content = uiComponent->getContent();
 
-        if (sprite != nullptr && position != nullptr) {
-            for (int i = 0; i < sprite->sprite.size(); ++i) {
-                // Move the cursor to the start of each line of the entity's position
-                std::cout << "\033[" << position->positionXY[1] + i + 1 << ";" << position->positionXY[0] + 1 << "H";
+                    // Move the cursor to the start of each line of the entity's position
+                    std::cout << "\033[" << startY + 1 << ";" << startX + 1 << "H";
+                    std::cout << content << std::endl;
+                } else {
+                    if (uiComponent == nullptr) {
+                        std::cerr << "UIComponent not found in the entity." << std::endl;
+                    }
 
-                for (int j = 0; j < sprite->sprite[i].size(); ++j) {
-                    std::cout << sprite->sprite[i][j];
+                    if (position == nullptr) {
+                        std::cerr << "Position not found in the entity." << std::endl;
+                    }
                 }
-                std::cout << std::endl;
-            }
-        } else {
-            if (sprite == nullptr) {
-                std::cerr << "Sprite not found in the entity." << std::endl;
-            }
-
-            if (position == nullptr) {
-                std::cerr << "Position not found in the entity." << std::endl;
             }
         }
     }
