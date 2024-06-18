@@ -38,6 +38,11 @@ public:
         entitiesToRender.erase(std::remove(entitiesToRender.begin(), entitiesToRender.end(), entity), entitiesToRender.end());
     }
 
+    void removeAllEntities()
+    {
+        entitiesToRender.clear();
+    }
+
     bool hasEntity(Entity* entity)
     {
         return std::find(entitiesToRender.begin(), entitiesToRender.end(), entity) != entitiesToRender.end();

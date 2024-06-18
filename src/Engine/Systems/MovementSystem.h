@@ -13,7 +13,7 @@ class MovementSystem {
 public:
     MovementSystem() = default;
 
-    void MoveInput(Entity& entity, char input, int* moveXY, CollisionSystem& collisionSystem, std::vector<int> triggerObjectsID, std::vector<bool> &triggers)
+    void MoveInput(Entity& entity, char input, int* moveXY, CollisionSystem& collisionSystem, std::vector<int> triggerObjectsID, std::vector<bool> &triggers, InputSystem::KeyState desiredState)
     {
         // Predict the new position
         PositionComponent* position = static_cast<PositionComponent*>(entity.getComponent(typeid(PositionComponent).name()));
@@ -23,7 +23,7 @@ public:
 
         bool allFalseExceptTrigger = true;
 
-        if (inputSystem.getKeyState(input) == InputSystem::KEY_HELD)
+        if (inputSystem.getKeyState(input) == desiredState)
         {
             for(int i = 0; i < collisionVector.size(); i++)
             {

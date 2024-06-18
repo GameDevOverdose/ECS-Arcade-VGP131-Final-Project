@@ -43,6 +43,11 @@ public:
         colliderEntities.erase(std::remove(colliderEntities.begin(), colliderEntities.end(), entity), colliderEntities.end());
     }
 
+    void removeAllEntities()
+    {
+        colliderEntities.clear();
+    }
+
     bool hasEntity(Entity* entity)
     {
         return std::find(colliderEntities.begin(), colliderEntities.end(), entity) != colliderEntities.end();

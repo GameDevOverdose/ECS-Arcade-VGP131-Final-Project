@@ -44,6 +44,11 @@ public:
         }
     }
 
+    void removeAllEntities()
+    {
+        entities.clear();
+    }
+
     void removeEntity(Entity* entity)
     {
         entities.erase(std::remove(entities.begin(), entities.end(), entity), entities.end());
