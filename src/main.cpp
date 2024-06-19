@@ -135,6 +135,7 @@ void CreateArcade()
 
 void HubScene(int arr[2]);
 
+//Enemy Spawn
 Entity* ETSpawnEnemy(int screenOffset[2], int enemyType)
 {
     Entity* enemy = new Entity("Enemy", 0, 0);
@@ -166,6 +167,7 @@ Entity* ETSpawnEnemy(int screenOffset[2], int enemyType)
     return enemy;
 }
 
+//Bullet mechanics
 class Bullet {
 public:
     Entity* bulletEntity;
@@ -320,6 +322,7 @@ void ETGameScene()
     std::vector<std::string> playerSprite = {"[-]"};
     player.addComponent(new SpriteComponent(playerSprite));
 
+    //Adding the ET game title
     Entity etGameTitle("ETGameTitle", 0, 0);
     std::vector<std::string> etTitleSprite = {
             " _____ ",
@@ -411,6 +414,7 @@ void ETGameScene()
         timeSystem.endFrame();
     }
 
+    //Game Over massage
     if(gameOver)
     {
         std::cout << "Game Over!" << std::endl;
@@ -493,7 +497,7 @@ void CroakGameScene()
     car.addComponent(new SpriteComponent(carSprite));
     ScreenCenter(car, {6, -4});
 
-
+    //Adding the Croak Game title
     Entity croakGameTitle("CroakGameTitle", 0, 0);
     std::vector<std::string> croakTitleSprite = {
             "  ____ ",
@@ -591,6 +595,7 @@ void CroakGameScene()
         timeSystem.endFrame();
     }
 
+    //Game Over massage
     if(gameOver)
     {
         std::cout << "Game Over!" << std::endl;
@@ -664,6 +669,7 @@ void SerpentGameScene()
 
     int scoreCount = 0;
 
+    //Adding the Serpent Game title
     Entity serpentGameTitle("SerpentGameTitle", 0, 0);
     std::vector<std::string> serpentTitleSprite = {
             "  _____",
