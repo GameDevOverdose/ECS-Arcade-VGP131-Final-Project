@@ -22,4 +22,17 @@ public:
     {
         return sprite[0].size();
     }
+
+    void flipSpriteHorizontally()
+    {
+        for(auto& row : sprite)
+        {
+            std::reverse(row.begin(), row.end());
+        }
+    }
+
+    void flipSpriteVertically()
+    {
+        std::reverse(sprite.begin(), sprite.end());
+    }
 };
