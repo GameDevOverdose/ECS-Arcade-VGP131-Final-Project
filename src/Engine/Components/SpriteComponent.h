@@ -6,7 +6,7 @@
 class SpriteComponent : public Component
 {
 public:
-    std::vector <std::string> sprite;
+    std::vector <std::string> sprite; // save sprite
 
     SpriteComponent(std::vector <std::string> sprite)
     {

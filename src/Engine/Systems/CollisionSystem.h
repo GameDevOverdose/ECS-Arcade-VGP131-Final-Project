@@ -17,7 +17,7 @@ public:
         this->ecs = ecs;
     }
 
-    void addEntities(std::vector <Entity*> entity)
+    void addEntities(std::vector <Entity*> entity) // add multiple entities
     {
         for (Entity* e : entity)
         {
@@ -25,7 +25,7 @@ public:
         }
     }
 
-    void addEntities(Entity *entity)
+    void addEntities(Entity *entity) // single entity
     {
         colliderEntities.push_back(entity);
     }
@@ -53,7 +53,7 @@ public:
         return std::find(colliderEntities.begin(), colliderEntities.end(), entity) != colliderEntities.end();
     }
 
-    bool checkCollision(Entity& entityA, Entity& entityB)
+    bool checkCollision(Entity& entityA, Entity& entityB) // check
     {
         PositionComponent* posA = static_cast<PositionComponent*>(entityA.getComponent(typeid(PositionComponent).name()));
         SpriteComponent* spriteA = static_cast<SpriteComponent*>(entityA.getComponent(typeid(SpriteComponent).name()));
