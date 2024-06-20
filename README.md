@@ -28,3 +28,7 @@ Right now the only way to run the game is to download the Source Code and run it
 [itch.io](https://gamedevoverdose.itch.io/)
 
 [linkedin](https://ca.linkedin.com/in/ayush-vaibhav-goyal-aa17952b6)
+
+# Game Demonstration (Gameplay) 🎮
+
+https://github.com/GameDevOverdose/VGP131-Final-Project/assets/42678129/4b9325ad-a37d-4d92-b9ab-407d34e6dfa7
