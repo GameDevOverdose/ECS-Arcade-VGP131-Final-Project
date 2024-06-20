@@ -23,12 +23,12 @@ The Game ECS Arcade combines 4 relatively different games, mechanics and systems
 Right now the only way to run the game is to download the Source Code and run it through an IDE but I am working on a way to upload an EXE of it right onto the GitHub repository. This is my first repository on GitHub so forgive me if few things feel messy.
 
 
+# Game Demonstration (Gameplay) 🎮
+
+https://github.com/GameDevOverdose/VGP131-Final-Project/assets/42678129/4b9325ad-a37d-4d92-b9ab-407d34e6dfa7
+
 # Links 🔗
 
 [itch.io](https://gamedevoverdose.itch.io/)
 
 [linkedin](https://ca.linkedin.com/in/ayush-vaibhav-goyal-aa17952b6)
-
-# Game Demonstration (Gameplay) 🎮
-
-https://github.com/GameDevOverdose/VGP131-Final-Project/assets/42678129/4b9325ad-a37d-4d92-b9ab-407d34e6dfa7
