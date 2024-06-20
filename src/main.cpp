@@ -133,9 +133,30 @@ void CreateArcade()
     ScreenCenter(arcadeBoundaryDown, {0, 3});
 }
 
+bool arcadesCompleted[3] = {0, 0, 0};
+
 void HubScene(int arr[2]);
 
-//Enemy Spawn
+void EndingCutscene();
+
+Entity* GameState(std::string content, std::array<int, 2> offset)
+{
+    Entity* gameStateUI = new Entity("GameStateUI", 0, 0);
+    gameStateUI->addComponent(new UIComponent(content, 47));
+
+    ScreenCenter(*gameStateUI, offset);
+
+    return gameStateUI;
+}
+
+bool ExitArcadeGame()
+{
+    if(inputSystem.getKeyState('q') == InputSystem::KEY_DOWN)
+    {
+        return true;
+    }
+}
+
 Entity* ETSpawnEnemy(int screenOffset[2], int enemyType)
 {
     Entity* enemy = new Entity("Enemy", 0, 0);
@@ -167,7 +188,6 @@ Entity* ETSpawnEnemy(int screenOffset[2], int enemyType)
     return enemy;
 }
 
-//Bullet mechanics
 class Bullet {
 public:
     Entity* bulletEntity;
@@ -257,7 +277,7 @@ void ETHandlePlayerInput(Entity& player, Bullet& bullet)
     movementSystem.MoveInput(player, 'a', new int[2] {-1, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_HELD);
     movementSystem.MoveInput(player, 'd', new int[2] {1, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_HELD);
 
-    if (inputSystem.getKeyState('j') == InputSystem::KEY_DOWN && !bullet.bulletActive)
+    if (inputSystem.getKeyState('b') == InputSystem::KEY_DOWN && !bullet.bulletActive)
     {
         PositionComponent* playerPosition = static_cast<PositionComponent*>(player.getComponent(typeid(PositionComponent).name()));
         bullet.createBullet(playerPosition->positionXY[0] + 1, playerPosition->positionXY[1] - 1);
@@ -271,6 +291,7 @@ void ETMoveEnemies(std::vector<Entity*>& rowEnemies, int enemiesMovementDirectio
     if (enemyMoveCounter >= enemySpeed) {
         for (int i = 0; i < rowEnemies.size(); ++i)
         {
+            PositionComponent* enemyPosition = static_cast<PositionComponent*>(rowEnemies[i]->getComponent(typeid(PositionComponent).name()));
             std::vector<int> triggerObjectsID = {arcadeBoundaryLeft.getId(), arcadeBoundaryRight.getId()};
             std::vector<bool> enemyTriggers;
 
@@ -279,7 +300,7 @@ void ETMoveEnemies(std::vector<Entity*>& rowEnemies, int enemiesMovementDirectio
                 Entity lastEnemy = *rowEnemies.back();
 
                 PositionComponent* lastEnemyPosition = static_cast<PositionComponent*>(lastEnemy.getComponent(typeid(PositionComponent).name()));
-                int lastEnemyPredictedPosition[2] = {lastEnemyPosition->positionXY[0] - 1, lastEnemyPosition->positionXY[1]};
+                int lastEnemyPredictedPosition[2] = {lastEnemyPosition->positionXY[0], lastEnemyPosition->positionXY[1]};
 
                 enemyTriggers = collisionSystem.wouldCollide(lastEnemy, lastEnemyPredictedPosition);
             }
@@ -288,7 +309,7 @@ void ETMoveEnemies(std::vector<Entity*>& rowEnemies, int enemiesMovementDirectio
                 Entity firstEnemy = *rowEnemies.front();
 
                 PositionComponent* firstEnemyPosition = static_cast<PositionComponent*>(firstEnemy.getComponent(typeid(PositionComponent).name()));
-                int firstEnemyPredictedPosition[2] = {firstEnemyPosition->positionXY[0] + 1, firstEnemyPosition->positionXY[1]};
+                int firstEnemyPredictedPosition[2] = {firstEnemyPosition->positionXY[0], firstEnemyPosition->positionXY[1]};
 
                 enemyTriggers = collisionSystem.wouldCollide(firstEnemy, firstEnemyPredictedPosition);
             }
@@ -306,7 +327,9 @@ void ETMoveEnemies(std::vector<Entity*>& rowEnemies, int enemiesMovementDirectio
                 }
             }
 
-            if (enemyTriggers[player.getId()] || enemyTriggers[arcadeBoundaryDown.getId()])
+            std::vector<bool> gameOverTrigger = collisionSystem.wouldCollide(*rowEnemies[i], new int[2] {enemyPosition->positionXY[0], enemyPosition->positionXY[1]});
+
+            if (gameOverTrigger[player.getId()] || gameOverTrigger[arcadeBoundaryDown.getId()])
             {
                 gameOver = true;
             }
@@ -322,7 +345,6 @@ void ETGameScene()
     std::vector<std::string> playerSprite = {"[-]"};
     player.addComponent(new SpriteComponent(playerSprite));
 
-    //Adding the ET game title
     Entity etGameTitle("ETGameTitle", 0, 0);
     std::vector<std::string> etTitleSprite = {
             " _____ ",
@@ -335,16 +357,30 @@ void ETGameScene()
     };
     etGameTitle.addComponent(new SpriteComponent(etTitleSprite));
 
+    //ScoreUI
     Entity enemyCounter("EnemyCounter", 0, 0);
     enemyCounter.addComponent(new UIComponent("Score: 0", 47));
 
     int enemyCount = 0;
 
-    ScreenCenter(enemyCounter, {35, 0});
+    //Controls UI
+    Entity controlsUI("Controls UI", 0, 0);
+    controlsUI.addComponent(new UIComponent("Controls:", 47));
+    Entity moveControlsUI("Move Controls UI", 0, 0);
+    moveControlsUI.addComponent(new UIComponent("Move: A (Left) / D (Right)", 47));
+    Entity shootControlsUI("Shoot Controls UI ", 0, 0);
+    shootControlsUI.addComponent(new UIComponent("Shoot: B (Shoot)", 47));
+
+    ScreenCenter(enemyCounter, {35, -2});
+
+    ScreenCenter(controlsUI, {36, 0});
+    ScreenCenter(moveControlsUI, {36, 2});
+    ScreenCenter(shootControlsUI, {36, 3});
+
     ScreenCenter(etGameTitle, {-45, 0});
 
-    ecs.addEntities({&player, &enemyCounter});
-    renderSystem.addEntities({&player, &enemyCounter, &etGameTitle});
+    ecs.addEntities({&player, &enemyCounter, &controlsUI, &moveControlsUI, &shootControlsUI, &etGameTitle});
+    renderSystem.addEntities({&player, &enemyCounter, &controlsUI, &moveControlsUI, &shootControlsUI, &etGameTitle});
     collisionSystem.addEntities(&player);
     ScreenCenter(player, {0, 2});
 
@@ -381,17 +417,21 @@ void ETGameScene()
         enemyCount++;
     }
 
-    ecs.listEntities();
-
     bool gameOver = false;
-    renderSystem.hideCursor();
 
     Bullet bullet;
+
+    int exitPosition[2] = {11, 17};
+
+    renderSystem.hideCursor();
 
     while (!gameOver)
     {
         timeSystem.startFrame();
         inputSystem.Update();
+
+        if(ExitArcadeGame())
+            break;
 
         // Handle player input and shooting
         ETHandlePlayerInput(player, bullet);
@@ -400,6 +440,21 @@ void ETGameScene()
         ETMoveEnemies(rowEnemies1, enemiesMovementDirection1, enemyMoveCounter, enemySpeed, gameOver, player);
         ETMoveEnemies(rowEnemies2, enemiesMovementDirection2, enemyMoveCounter, enemySpeed, gameOver, player);
         ETMoveEnemies(rowEnemies3, enemiesMovementDirection3, enemyMoveCounter, enemySpeed, gameOver, player);
+
+        if(enemyCount == 0)
+        {
+            arcadesCompleted[0] = true;
+
+            renderSystem.addEntities(GameState("GAME WON!", {0, -4}));
+
+            renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 1, (screenHeight - 1));
+
+            timeSystem.sleepFor(std::chrono::milliseconds(2000));
+
+            SwitchScene();
+
+            break;
+        }
 
         // Update score UI
         UIComponent* countUI = static_cast<UIComponent*>(enemyCounter.getComponent(typeid(UIComponent).name()));
@@ -414,30 +469,36 @@ void ETGameScene()
         timeSystem.endFrame();
     }
 
-    //Game Over massage
     if(gameOver)
     {
-        std::cout << "Game Over!" << std::endl;
+        renderSystem.addEntities(GameState("GAME OVER", {0, -8}));
+
+        renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 1, (screenHeight - 1));
 
         timeSystem.sleepFor(std::chrono::milliseconds(2000));
     }
 
     SwitchScene();
 
-    HubScene(new int[2]{8, 16});
-
-    //renderSystem.showCursor();
+    HubScene(exitPosition);
 }
 
-void CroakHandlePlayerInput(Entity& player)
+void CroakHandlePlayerInput(Entity& player, bool &reachedTop)
 {
-    std::vector<int> triggerObjectsID = {};
+    std::vector<int> triggerObjectsID = {arcadeBoundaryTop.getId()};
     std::vector<bool> triggers;
+    triggers.resize(ecs.getHighestEntityId() + 3);
+
     movementSystem.MoveInput(player, 'w', new int[2] {0, -1}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_DOWN);
     movementSystem.MoveInput(player, 'w', new int[2] {0, -1}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_HELD);
     movementSystem.MoveInput(player, 'a', new int[2] {-3, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_DOWN);
     movementSystem.MoveInput(player, 's', new int[2] {0, 1}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_DOWN);
     movementSystem.MoveInput(player, 'd', new int[2] {3, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_DOWN);
+
+    if(triggers[arcadeBoundaryTop.getId()])
+    {
+        reachedTop = true;
+    }
 }
 
 void MoveEntityInDirection(Entity& entity, Entity& player, bool& gameOver, int direction[2], int spawnPoint[2])
@@ -475,6 +536,8 @@ void CroakGameScene()
     std::vector<std::string> playerSprite = {"^(_)^"};
     player.addComponent(new SpriteComponent(playerSprite));
 
+    PositionComponent* playerPosition = static_cast<PositionComponent*>(player.getComponent(typeid(PositionComponent).name()));
+
     int leftSpawn[2] = {-6, 0};
     int rightSpawn[2] = {7, 0};
 
@@ -497,7 +560,6 @@ void CroakGameScene()
     car.addComponent(new SpriteComponent(carSprite));
     ScreenCenter(car, {6, -4});
 
-    //Adding the Croak Game title
     Entity croakGameTitle("CroakGameTitle", 0, 0);
     std::vector<std::string> croakTitleSprite = {
             "  ____ ",
@@ -513,20 +575,35 @@ void CroakGameScene()
 
     int rowCount = 0;
 
-    ScreenCenter(rowCounter, {35, 0});
+    //Controls UI
+    Entity controlsUI("Controls UI", 0, 0);
+    controlsUI.addComponent(new UIComponent("Controls:", 47));
+    Entity moveControlsUI_1("Move Controls UI-1", 0, 0);
+    moveControlsUI_1.addComponent(new UIComponent("Move: A (Left) / D (Right)", 47));
+    Entity moveControlsUI_2("Move Controls UI-2", 0, 0);
+    moveControlsUI_2.addComponent(new UIComponent("W (Forward) / S (Backward)", 47));
+
+    ScreenCenter(rowCounter, {36, -3});
+
+    ScreenCenter(controlsUI, {37, -1});
+    ScreenCenter(moveControlsUI_1, {37, 1});
+    ScreenCenter(moveControlsUI_2, {37, 2});
+
     ScreenCenter(croakGameTitle, {-45, 0});
 
-    ecs.addEntities({&player, &rowCounter});
-    renderSystem.addEntities({&player, &rowCounter, &croakGameTitle});
+    ecs.addEntities({&player, &rowCounter, &controlsUI, &moveControlsUI_1, &moveControlsUI_2, &croakGameTitle});
+    renderSystem.addEntities({&player, &rowCounter, &controlsUI, &moveControlsUI_1, &moveControlsUI_2, &croakGameTitle});
     collisionSystem.addEntities(&player);
     ScreenCenter(player, {0, 2});
 
     std::vector<Entity*> rowEnemies;
     int enemySpeed = 10;
 
-    ecs.listEntities();
-
     bool gameOver = false;
+    bool reachedTop = false;
+
+    int exitPosition[2] = {32, 17};
+
     renderSystem.hideCursor();
 
     while (!gameOver)
@@ -534,8 +611,13 @@ void CroakGameScene()
         timeSystem.startFrame();
         inputSystem.Update();
 
+        if(ExitArcadeGame())
+            break;
+
+        ExitArcadeGame();
+
         // Handle player input and shooting
-        CroakHandlePlayerInput(player);
+        CroakHandlePlayerInput(player, reachedTop);
 
         if(true)
         {
@@ -585,6 +667,23 @@ void CroakGameScene()
             frameCounter++;
         }
 
+        if(reachedTop)
+        {
+            arcadesCompleted[1] = true;
+
+            renderSystem.addEntities(GameState("GAME WON!", {0, -4}));
+
+            renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 1, (screenHeight - 1));
+
+            timeSystem.sleepFor(std::chrono::milliseconds(2000));
+
+            SwitchScene();
+
+            break;
+        }
+
+        rowCount = playerPosition->positionXY[1] - 4;
+
         // Update score UI
         UIComponent* countUI = static_cast<UIComponent*>(rowCounter.getComponent(typeid(UIComponent).name()));
         countUI->setContent("Rows: " + std::to_string(rowCount));
@@ -595,19 +694,18 @@ void CroakGameScene()
         timeSystem.endFrame();
     }
 
-    //Game Over massage
     if(gameOver)
     {
-        std::cout << "Game Over!" << std::endl;
+        renderSystem.addEntities(GameState("GAME OVER", {0, -8}));
+
+        renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 1, (screenHeight - 1));
 
         timeSystem.sleepFor(std::chrono::milliseconds(2000));
     }
 
     SwitchScene();
 
-    HubScene(new int[2]{32, 16});
-
-    renderSystem.showCursor();
+    HubScene(exitPosition);
 }
 
 void SerpentSpawnFruit(Entity& fruit, int areaWidthLeft, int areaWidthRight, int areaHeightTop, int areaHeightBottom, CollisionSystem& collisionSystem)
@@ -657,6 +755,8 @@ void SerpentGameScene()
     std::vector<std::string> playerSprite = {"0"};
     player.addComponent(new SpriteComponent(playerSprite));
 
+    ScreenCenter(player, {0, 0});
+
     std::vector<Entity*> playerNodes;
     std::vector<std::array<int, 2>> nodeLastPositions;
 
@@ -664,12 +764,6 @@ void SerpentGameScene()
     std::vector<std::string> fruitSprite = {"*"};
     fruit.addComponent(new SpriteComponent(fruitSprite));
 
-    Entity score("Score", 0, 0);
-    score.addComponent(new UIComponent("Score: 0", 47));
-
-    int scoreCount = 0;
-
-    //Adding the Serpent Game title
     Entity serpentGameTitle("SerpentGameTitle", 0, 0);
     std::vector<std::string> serpentTitleSprite = {
             "  _____",
@@ -687,13 +781,30 @@ void SerpentGameScene()
     };
     serpentGameTitle.addComponent(new SpriteComponent(serpentTitleSprite));
 
+    Entity score("Score", 0, 0);
+    score.addComponent(new UIComponent("Score: 0", 47));
+
+    int scoreCount = 0;
+
+    //Controls UI
+    Entity controlsUI("Controls UI", 0, 0);
+    controlsUI.addComponent(new UIComponent("Controls:", 47));
+    Entity moveControlsUI_1("Move Controls UI-1", 0, 0);
+    moveControlsUI_1.addComponent(new UIComponent("Move: A (Left) / D (Right)", 47));
+    Entity moveControlsUI_2("Move Controls UI-2", 0, 0);
+    moveControlsUI_2.addComponent(new UIComponent("W (Up) / S (Down)", 47));
+
+    ScreenCenter(score, {35, -2});
+
+    ScreenCenter(controlsUI, {36, 0});
+    ScreenCenter(moveControlsUI_1, {37, 2});
+    ScreenCenter(moveControlsUI_2, {37, 3});
+
     ScreenCenter(serpentGameTitle, {-45, 0});
 
-    ecs.addEntities({&player, &fruit, &score, &serpentGameTitle});
-    renderSystem.addEntities({&player, &fruit, &score, &serpentGameTitle});
+    ecs.addEntities({&player, &fruit, &score, &controlsUI, &moveControlsUI_1, &moveControlsUI_2, &serpentGameTitle});
+    renderSystem.addEntities({&player, &fruit, &score, &controlsUI, &moveControlsUI_1, &moveControlsUI_2, &serpentGameTitle});
     collisionSystem.addEntities({&player, &fruit});
-    ScreenCenter(player, {0, 0});
-    ScreenCenter(score, {35, 0});
 
     std::array<int, 2> movementDirection = {0, 0};
     char input = 'n';
@@ -701,17 +812,19 @@ void SerpentGameScene()
 
     bool gameOver = false;
 
-    // ecs.listEntities();
-
     SerpentSpawnFruit(fruit, 47, screenWidth - 46, 4, screenHeight - 13, collisionSystem);
+
+    int exitPosition[2] = {53, 17};
 
     renderSystem.hideCursor();
 
     while (!gameOver)
     {
         timeSystem.startFrame();
-
         inputSystem.Update();
+
+        if(ExitArcadeGame())
+            break;
 
         // GAME LOGIC
 
@@ -771,7 +884,7 @@ void SerpentGameScene()
 
         if (triggers[fruit.getId()])
         {
-            SerpentSpawnFruit(fruit, 47, screenWidth - 48, 4, screenHeight - 13, collisionSystem);
+            SerpentSpawnFruit(fruit, 51, screenWidth - 55, 4, screenHeight - 13, collisionSystem);
 
             scoreCount++;
 
@@ -839,6 +952,21 @@ void SerpentGameScene()
             gameOver = true;
         }
 
+        if(scoreCount > 259)
+        {
+            arcadesCompleted[2] = true;
+
+            renderSystem.addEntities(GameState("GAME WON!", {0, -4}));
+
+            renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 1, (screenHeight - 1));
+
+            timeSystem.sleepFor(std::chrono::milliseconds(2000));
+
+            SwitchScene();
+
+            break;
+        }
+
         renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 1, (screenHeight - 1));
         //renderSystem.RenderScreen(screenWidth, screenHeight, 47, (screenWidth - 46), 1, (screenHeight - 1));
         //renderSystem.renderUI();
@@ -848,10 +976,10 @@ void SerpentGameScene()
 
     SwitchScene();
 
-    HubScene(new int[2]{53, 16});
+    HubScene(exitPosition);
 }
 
-void PlayerInput(Entity& player, bool &movingRight, std::vector<int> triggerObjectsID)
+void PlayerInput(Entity& player, bool &movingRight, std::vector<int> triggerObjectsID, bool &onDialogueTrigger, bool firstCutsceneOver, Entity *insertCoinUI, Entity *doorTrigger, std::vector<bool> &triggers)
 {
     std::vector<bool> collisions;
     collisions.resize(ecs.getHighestEntityId() + 3);
@@ -873,33 +1001,342 @@ void PlayerInput(Entity& player, bool &movingRight, std::vector<int> triggerObje
     movementSystem.MoveInput(player, 'd', new int[2] {3, 0}, collisionSystem, triggerObjectsID, collisions, InputSystem::KEY_HELD);
 
     PositionComponent* playerPosition = static_cast<PositionComponent*>(player.getComponent(typeid(PositionComponent).name()));
-    std::vector<bool> triggers = collisionSystem.wouldCollide(player, new int[2] {playerPosition->positionXY[0], playerPosition->positionXY[1]});
+    triggers = collisionSystem.wouldCollide(player, new int[2] {playerPosition->positionXY[0], playerPosition->positionXY[1]});
 
     if(!triggers.empty())
     {
-        if (triggers[triggerObjectsID[0]] && inputSystem.getKeyState('k') == InputSystem::KEY_DOWN)
+        if(firstCutsceneOver)
         {
-            SwitchScene();
+            if(inputSystem.getKeyState('c') == InputSystem::KEY_DOWN)
+            {
+                if (triggers[triggerObjectsID[0]])
+                {
+                    ecs.removeEntity(doorTrigger);
+                    collisionSystem.removeEntity(doorTrigger);
 
-            CreateArcade();
-            ETGameScene();
-        }
-        else if (triggers[triggerObjectsID[1]] && inputSystem.getKeyState('k') == InputSystem::KEY_DOWN)
-        {
-            SwitchScene();
+                    SwitchScene();
 
-            CreateArcade();
-            CroakGameScene();
-        }
-        else if (triggers[triggerObjectsID[2]] && inputSystem.getKeyState('k') == InputSystem::KEY_DOWN)
-        {
-            SwitchScene();
+                    CreateArcade();
+                    ETGameScene();
+                }
+                else if (triggers[triggerObjectsID[1]])
+                {
+                    SwitchScene();
 
-            CreateArcade();
-            SerpentGameScene();
+                    CreateArcade();
+                    CroakGameScene();
+                }
+                else if (triggers[triggerObjectsID[2]])
+                {
+                    SwitchScene();
+
+                    CreateArcade();
+                    SerpentGameScene();
+                }
+            }
+
+            PositionComponent* insertCoinUIPosition = static_cast<PositionComponent*>(insertCoinUI->getComponent(typeid(PositionComponent).name()));
+
+            if (triggers[triggerObjectsID[0]])
+            {
+                ecs.addEntities(insertCoinUI);
+                renderSystem.addEntities(insertCoinUI);
+
+                insertCoinUIPosition->positionXY[0] = 7;
+                insertCoinUIPosition->positionXY[1] = 12;
+            }
+            else if (triggers[triggerObjectsID[1]])
+            {
+                ecs.addEntities(insertCoinUI);
+                renderSystem.addEntities(insertCoinUI);
+
+                insertCoinUIPosition->positionXY[0] = 28;
+                insertCoinUIPosition->positionXY[1] = 12;
+            }
+            else if (triggers[triggerObjectsID[2]])
+            {
+                ecs.addEntities(insertCoinUI);
+                renderSystem.addEntities(insertCoinUI);
+
+                insertCoinUIPosition->positionXY[0] = 49;
+                insertCoinUIPosition->positionXY[1] = 12;
+            }
+            else
+            {
+                ecs.removeEntity(insertCoinUI);
+                renderSystem.removeEntity(insertCoinUI);
+            }
         }
     }
+
+    if (triggers[triggerObjectsID[3]] && movingRight)
+    {
+        onDialogueTrigger = true;
+    }
+    else
+    {
+        onDialogueTrigger = false;
+    }
 }
+
+bool StartingCutscene(Entity &dialogueUI, bool &cutsceneActivated, int &dialogueCount)
+{
+    cutsceneActivated = true;
+
+    UIComponent* uiComponent = static_cast<UIComponent*>(dialogueUI.getComponent(typeid(UIComponent).name()));
+    PositionComponent* positionComponent = static_cast<PositionComponent*>(dialogueUI.getComponent(typeid(PositionComponent).name()));
+
+    ecs.addEntities(&dialogueUI);
+    renderSystem.addEntities(&dialogueUI);
+
+    std::vector <std::string> dialogues =
+    {
+            "Welcome to the ECS Arcade!",
+            "I'm the owner of this place.",
+            "Well...",
+            "My dad was, before me, but he's retired now.",
+            "During his time, we only had 3 machines-",
+            "that would play the same game.",
+            "But due to some recent advancements-",
+            "a company called JAMA or JAMMA...I think?",
+            "anyways, because of that we were able to",
+            "reprogram the machines to play different games.",
+            "Ah the wonders of technology!",
+            "Wish this stuff existed when I was your age.",
+            "...",
+            "You know what? Here, take this bunch of coins.",
+            "Just go upto the Arcades-",
+            "and press 'C' to insert the coin.",
+            "Pretty sure this isn't good for business but-",
+            "I never was a good businessman either.",
+    };
+
+    std::vector <std::array <int, 2>> dialogueOffset =
+    {
+            {43, -4},
+            {43, -4},
+            {45, -4},
+            {36, -4},
+            {38, -4},
+            {43, -4},
+            {40, -4},
+            {38, -4},
+            {38, -4},
+            {35, -4},
+            {44, -4},
+            {36, -4},
+            {45, -4},
+            {35, -4},
+            {45, -4},
+            {42, -4},
+            {36, -4},
+            {39, -4},
+     };
+
+    while(dialogueCount < dialogues.size())
+    {
+        timeSystem.startFrame();
+        inputSystem.Update();
+
+        // Render screen
+        renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+        timeSystem.startFrame();
+        inputSystem.Update();
+
+        uiComponent->setContent(dialogues[dialogueCount]);
+
+        ScreenCenter(dialogueUI, dialogueOffset[dialogueCount]);
+
+        if(inputSystem.getKeyState('t') == InputSystem::KEY_DOWN)
+        {
+            dialogueCount++;
+        }
+
+        timeSystem.endFrame();
+    }
+
+    uiComponent->setContent("");
+
+    return true;
+}
+
+void EndingCutscene(Entity &dialogueUI, bool &cutsceneActivated, int &dialogueCount)
+{
+    cutsceneActivated = true;
+
+    dialogueCount = 0;
+
+    UIComponent* uiComponent = static_cast<UIComponent*>(dialogueUI.getComponent(typeid(UIComponent).name()));
+    PositionComponent* positionComponent = static_cast<PositionComponent*>(dialogueUI.getComponent(typeid(PositionComponent).name()));
+
+    ecs.addEntities(&dialogueUI);
+    renderSystem.addEntities(&dialogueUI);
+
+    std::vector <std::string> dialogues =
+            {
+                    "You completed 2 of the games?",
+                    "I wouldn't expect you to complete Serpent-",
+                    "So that's quite impressive I must say!",
+                    "...",
+                    "By beating both those games you have proved-",
+                    "that you're worthy.",
+                    "Worthy of-",
+                    "This Arcade.",
+                    "You were Efficient",
+                    "You were Competent",
+                    "If not Skilled",
+                    "But you have that Spark in you.",
+                    "I have now decided-",
+                    "You are my heir.",
+                    "You will now Inherit the ECS Ar-",
+                    "...",
+                    "Wait that doesn't sound right",
+            };
+
+    std::vector <std::array <int, 2>> dialogueOffset =
+            {
+                    {43, -4},
+                    {37, -4},
+                    {39, -4},
+                    {45, -4},
+                    {36, -4},
+                    {45, -4},
+                    {45, -4},
+                    {45, -4},
+                    {44, -4},
+                    {44, -4},
+                    {44, -4},
+                    {43, -4},
+                    {45, -4},
+                    {44, -4},
+                    {41, -4},
+                    {45, -4},
+                    {43, -4},
+            };
+
+    if(arcadesCompleted[0] && arcadesCompleted[1] && arcadesCompleted[2])
+    {
+        dialogues =
+                {
+                        "You completed all 3 games?",
+                        "I...I",
+                        "I am speechless.",
+                        "...",
+                        "By beating those games you have proved-",
+                        "that you're worthy.",
+                        "Worthy of-",
+                        "This Arcade.",
+                        "You were Efficient",
+                        "You were Competent",
+                        "You Were Skilled",
+                        "Seeing you play makes me ECStatic.",
+                        "I have now decided-",
+                        "You are my heir.",
+                        "You will now Inherit the ECS Ar-",
+                        "...",
+                        "Wait that doesn't sound right",
+                };
+
+        dialogueOffset =
+                {
+                        {43, -4},
+                        {45, -4},
+                        {45, -4},
+                        {45, -4},
+                        {38, -4},
+                        {45, -4},
+                        {45, -4},
+                        {45, -4},
+                        {44, -4},
+                        {44, -4},
+                        {44, -4},
+                        {41, -4},
+                        {45, -4},
+                        {44, -4},
+                        {41, -4},
+                        {45, -4},
+                        {43, -4},
+                };
+    }
+
+    while(dialogueCount < dialogues.size())
+    {
+        timeSystem.startFrame();
+        inputSystem.Update();
+
+        // Render screen
+        renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+        timeSystem.startFrame();
+        inputSystem.Update();
+
+        uiComponent->setContent(dialogues[dialogueCount]);
+
+        ScreenCenter(dialogueUI, dialogueOffset[dialogueCount]);
+
+        if(inputSystem.getKeyState('t') == InputSystem::KEY_DOWN)
+        {
+            dialogueCount++;
+        }
+
+        timeSystem.endFrame();
+    }
+
+    uiComponent->setContent("");
+
+    SwitchScene();
+
+    ecs.addEntities(&dialogueUI);
+    renderSystem.addEntities(&dialogueUI);
+
+    if(arcadesCompleted[0] && arcadesCompleted[1] && arcadesCompleted[2])
+    {
+        renderSystem.clearScreen();
+
+        timeSystem.sleepFor(std::chrono::milliseconds(1000));
+
+        uiComponent->setContent("THE END");
+    }
+    else
+    {
+        renderSystem.clearScreen();
+
+        timeSystem.sleepFor(std::chrono::milliseconds(1500));
+
+        uiComponent->setContent("GAME OVER");
+
+        ScreenCenter(dialogueUI, {0, 0});
+
+        renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+        timeSystem.sleepFor(std::chrono::milliseconds(2000));
+
+        uiComponent->setContent("GAME OVER?");
+    }
+
+    ScreenCenter(dialogueUI, {0, 0});
+
+    renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+    if(arcadesCompleted[0] && arcadesCompleted[1] && arcadesCompleted[2])
+    {
+        timeSystem.sleepFor(std::chrono::milliseconds(3000));
+    }
+    else
+    {
+        timeSystem.sleepFor(std::chrono::milliseconds(1750));
+    }
+}
+
+bool onDialogueTrigger = false;
+bool cutsceneActivated = false;
+
+bool firstCutsceneOver = false;
+
+Entity *talkUI = GameState("Press 'T' to Talk", {24, 1});
+Entity *cutsceneDialogue = GameState("", {43, -4});
+int dialogueCount = 0;
 
 void HubScene(int playerStartPos[2])
 {
@@ -912,8 +1349,8 @@ void HubScene(int playerStartPos[2])
             "+-----+",
             "    || ",
             "-------",
-            "|     |",
-            "|     |",
+            "|_____|",
+            "|_____|",
             "|     |",
             "-------",
             " || | | ",
@@ -930,9 +1367,9 @@ void HubScene(int playerStartPos[2])
             "+-------+",
             "  | |    ",
             "---------",
-            "|       |",
-            "|       |",
-            "|       |",
+            "|\\ /\\ / |",
+            "| \\\\//  |",
+            "|  \\/   |",
             "|       |",
             "|       |",
             "---------",
@@ -957,10 +1394,10 @@ void HubScene(int playerStartPos[2])
             "    \\                                                        ",
             "     \\------------------------------------------------------------------------------------------------------------------",
             "     |                                                       ",
-            "     |      /\\                                               ",
-            "     |     /  \\   |---  ___   /   |___ |--- /--                 ",
-            "|\\   |    /----\\  |__| |     /_\\  |  | |-   ---               ",
-            "| \\  |   /      \\ |  \\ \\--- /   \\ |__| |--- ---\\         ",
+            "     |                                                       ",
+            "     |                                                       ",
+            "|\\   |                                                       ",
+            "| \\  |                                                       ",
             "|  \\ |                                                       ",
             "|  | |                                                       ",
             "|  | |                                                       ",
@@ -985,6 +1422,17 @@ void HubScene(int playerStartPos[2])
     };
     background.addComponent(new SpriteComponent(backgroundSprite));
 
+    Entity arcadesTitle("ArcadesTitle", 9, 5);
+    std::vector<std::string> arcadesTitleSprite = {
+            "   _____                            .___             ",
+            "  /  _  \\_______   ____ _____     __| _/____   ______",
+            " /  /_\\  \\_  __ \\_/ ___\\\\__  \\   / __ |/ __ \\ /  ___/",
+            "/    |    \\  | \\/\\  \\___ / __ \\_/ /_/ \\  ___/ \\___ \\ ",
+            "\\____|__  /__|    \\___  >____  /\\____ |\\___  >____  >",
+            "        \\/            \\/     \\/      \\/    \\/     \\/ "
+    };
+    arcadesTitle.addComponent(new SpriteComponent(arcadesTitleSprite));
+
     Entity etArcade("ETArcade", 9, 13);
     std::vector<std::string> etArcadeSprite = {
             "___________",
@@ -993,12 +1441,12 @@ void HubScene(int playerStartPos[2])
             "| |     | |",
             "| |     | |",
             "| ------- |",
+            "|      [] |",
             "|         |",
-            "|         |",
-            "|         |",
+            "|  ,---.  |",
             "|  |---   |",
-            "|  |-     |",
-            "|  |---   |",
+            "|  |      |",
+            "|  `---'  |",
             "|         |",
     };
     etArcade.addComponent(new SpriteComponent(etArcadeSprite));
@@ -1011,12 +1459,12 @@ void HubScene(int playerStartPos[2])
             "| |     | |",
             "| |     | |",
             "| ------- |",
+            "|      [] |",
             "|         |",
-            "|         |",
-            "|         |",
-            "|  |---   |",
+            "|  ,---.  |",
             "|  |      |",
-            "|  |---   |",
+            "|  |      |",
+            "|  `---'  |",
             "|         |",
     };
     croakArcade.addComponent(new SpriteComponent(croakArcadeSprite));
@@ -1029,12 +1477,12 @@ void HubScene(int playerStartPos[2])
             "| |     | |",
             "| |     | |",
             "| ------- |",
+            "|      [] |",
             "|         |",
-            "|         |",
-            "|         |",
-            "|   |---  |",
-            "|   |_    |",
-            "|  ___|   |",
+            "|  ,---.  |",
+            "|  `---.  |",
+            "|      |  |",
+            "|  `---'  |",
             "|         |",
     };
     serpentArcade.addComponent(new SpriteComponent(serpentArcadeSprite));
@@ -1047,18 +1495,31 @@ void HubScene(int playerStartPos[2])
     doorCollider.addComponent(new SpriteComponent(horizontalColliderSprite));
     ownerCollider.addComponent(new SpriteComponent(horizontalColliderSprite));
 
-    /*Entity trigger("Trigger", 25, 15);
+    Entity talkTrigger("Trigger", 82, 17);
+    Entity exitTrigger("Trigger", 5, 17);
     std::vector<std::string> triggerSprite = {
-            "-------------", "-------------", "-------------", "-------------", "-------------", "-------------", "-------------", "-------------", "-------------"
+            "--------", "--------", "--------", "--------", "--------", "--------", "--------", "--------", "--------"
     };
-    trigger.addComponent(new SpriteComponent(triggerSprite));*/
+    talkTrigger.addComponent(new SpriteComponent(triggerSprite));
+    exitTrigger.addComponent(new SpriteComponent(triggerSprite));
 
-    ecs.addEntities({&player, &background, &shopkeeper, &doorCollider, &ownerCollider, &etArcade, &croakArcade, &serpentArcade});
-    renderSystem.addEntities({&background, &etArcade, &croakArcade, &serpentArcade, &player, &shopkeeper});
-    collisionSystem.addEntities({&player, &doorCollider, &ownerCollider, &etArcade, &croakArcade, &serpentArcade});
+    ecs.addEntities({&player, &background, &arcadesTitle, &shopkeeper, &doorCollider, &ownerCollider, &etArcade, &croakArcade, &serpentArcade, &talkTrigger, &exitTrigger});
+    renderSystem.addEntities({&background, &arcadesTitle, &etArcade, &croakArcade, &serpentArcade, &player, &shopkeeper});
+    collisionSystem.addEntities({&player, &doorCollider, &ownerCollider, &etArcade, &croakArcade, &serpentArcade, &talkTrigger, &exitTrigger});
 
-    std::vector<int> triggerObjectsID = {etArcade.getId(), croakArcade.getId(), serpentArcade.getId()};
+    std::vector<int> triggerObjectsID = {etArcade.getId(), croakArcade.getId(), serpentArcade.getId(), talkTrigger.getId(), exitTrigger.getId()};
+
+    Entity *insertCoinUI = GameState("Insert Coin 'C'", {24, 1});
+
     bool movingRight = true;
+    bool arcadesFinished = false;
+
+    if(arcadesCompleted[0] && arcadesCompleted[1])
+    {
+        arcadesFinished = true;
+    }
+
+    std::vector<bool> triggers;
 
     renderSystem.hideCursor();
 
@@ -1067,23 +1528,203 @@ void HubScene(int playerStartPos[2])
         timeSystem.startFrame();
         inputSystem.Update();
 
-        PlayerInput(player, movingRight, triggerObjectsID);
+        //std::cout << "Arcade Completed: " << arcadesCompleted[0] << " " << arcadesCompleted[1] << " " << arcadesCompleted[2] << std::endl;
+
+        if(!cutsceneActivated)
+            PlayerInput(player, movingRight, triggerObjectsID, onDialogueTrigger, firstCutsceneOver, insertCoinUI, &exitTrigger, triggers);
+
+        if(triggers[exitTrigger.getId()])
+        {
+            UIComponent* uiComponent = static_cast<UIComponent*>(cutsceneDialogue->getComponent(typeid(UIComponent).name()));
+            PositionComponent* positionComponent = static_cast<PositionComponent*>(cutsceneDialogue->getComponent(typeid(PositionComponent).name()));
+
+            if (ExitArcadeGame() && !firstCutsceneOver)
+            {
+                ecs.removeEntity(&player);
+                renderSystem.removeEntity(&player);
+
+                ecs.addEntities(cutsceneDialogue);
+                renderSystem.addEntities(cutsceneDialogue);
+
+                renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+                timeSystem.sleepFor(std::chrono::milliseconds(2500));
+
+                std::vector <std::string> dialogues =
+                        {
+                                "Did he just leave?",
+                                "...",
+                                "Damn, he was my only customer too"
+                        };
+
+                std::vector <std::array <int, 2>> dialogueOffset =
+                        {
+                                {44, -4},
+                                {45, -4},
+                                {41, -4},
+                        };
+
+                uiComponent->setContent(dialogues[0]);
+                ScreenCenter(*cutsceneDialogue, dialogueOffset[0]);
+
+                renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+                timeSystem.sleepFor(std::chrono::milliseconds(1500));
+
+                uiComponent->setContent(dialogues[1]);
+                ScreenCenter(*cutsceneDialogue, dialogueOffset[1]);
+
+                renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+                timeSystem.sleepFor(std::chrono::milliseconds(3000));
+
+                uiComponent->setContent(dialogues[2]);
+                ScreenCenter(*cutsceneDialogue, dialogueOffset[2]);
+
+                renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+                timeSystem.sleepFor(std::chrono::milliseconds(1000));
+
+                break;
+            }
+            else if (ExitArcadeGame() && firstCutsceneOver)
+            {
+                ecs.removeEntity(&player);
+                renderSystem.removeEntity(&player);
+
+                ecs.removeEntity(insertCoinUI);
+                renderSystem.removeEntity(insertCoinUI);
+
+                ecs.addEntities(cutsceneDialogue);
+                renderSystem.addEntities(cutsceneDialogue);
+
+                renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+                timeSystem.sleepFor(std::chrono::milliseconds(2500));
+
+                std::vector <std::string> dialogues =
+                        {
+                                "...",
+                                "Did he just steal all my money?"
+                        };
+
+                std::vector <std::array <int, 2>> dialogueOffset =
+                        {
+                                {45, -4},
+                                {43, -4},
+                        };
+
+                uiComponent->setContent(dialogues[0]);
+                ScreenCenter(*cutsceneDialogue, dialogueOffset[0]);
+
+                renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+                timeSystem.sleepFor(std::chrono::milliseconds(1500));
+
+                uiComponent->setContent(dialogues[1]);
+                ScreenCenter(*cutsceneDialogue, dialogueOffset[1]);
+
+                renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+                timeSystem.sleepFor(std::chrono::milliseconds(2000));
+
+                break;
+            }
+        }
 
         // Render screen
         renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
 
+        if(onDialogueTrigger == true)
+        {
+            if (inputSystem.getKeyState('t') == InputSystem::KEY_DOWN)
+            {
+                firstCutsceneOver = StartingCutscene(*cutsceneDialogue, cutsceneActivated, dialogueCount);
+            }
+
+            if(arcadesFinished && inputSystem.getKeyState('t') == InputSystem::KEY_DOWN)
+            {
+                EndingCutscene(*cutsceneDialogue, cutsceneActivated, dialogueCount);
+                exit(0);
+            }
+        }
+
+        if(!firstCutsceneOver || arcadesFinished)
+        {
+            if(onDialogueTrigger)
+            {
+                ecs.addEntities(talkUI);
+                renderSystem.addEntities(talkUI);
+            }
+            else
+            {
+                ecs.removeEntity(talkUI);
+                renderSystem.removeEntity(talkUI);
+            }
+        }
+        else
+        {
+            cutsceneActivated = false;
+
+            ecs.removeEntity(talkUI);
+            renderSystem.removeEntity(talkUI);
+        }
+
         timeSystem.endFrame();
     }
-    renderSystem.showCursor();
-
-    //CreateArcade();
-
-    //SeprentGameMain();
-    //ETGameMain();
-    //CroakGameMain();
 }
 
 int main()
 {
-    HubScene(new int[2]{7, 17});
+    Entity gameTitle("GameTitle", 0, 0);
+    std::vector<std::string> gameTitleSprite = {
+            " _______  _______  _______",
+            "|       ||       ||       |",
+            "|    ___||       ||  _____|",
+            "|   |___ |       || |_____",
+            "|    ___||      _||_____  |",
+            "|   |___ |     |_  _____| |",
+            "|_______||_______||_______|",
+            " _______  ______    _______  _______  ______   _______",
+            "|   _   ||    _ |  |       ||   _   ||      | |       |",
+            "|  |_|  ||   | ||  |       ||  |_|  ||  _    ||    ___|",
+            "|       ||   |_||_ |       ||       || | |   ||   |___",
+            "|       ||    __  ||      _||       || |_|   ||    ___|",
+            "|   _   ||   |  | ||     |_ |   _   ||       ||   |___",
+            "|__| |__||___|  |_||_______||__| |__||______| |_______|"
+    };
+    gameTitle.addComponent(new SpriteComponent(gameTitleSprite));
+
+    Entity enterUI("EnterUI", 0, 0);
+    enterUI.addComponent(new UIComponent("Press 'E' to Enter the Arcade", 47));
+
+    ScreenCenter(gameTitle, {-45, -2});
+    ScreenCenter(enterUI, {-42, 7});
+
+    ecs.addEntities({&gameTitle, &enterUI});
+    renderSystem.addEntities({&gameTitle, &enterUI});
+
+    renderSystem.hideCursor();
+
+    while (true)
+    {
+        timeSystem.startFrame();
+        inputSystem.Update();
+
+        // Render screen
+        renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
+
+        if(inputSystem.getKeyState('e') == InputSystem::KEY_DOWN)
+        {
+            SwitchScene();
+
+            HubScene(new int[2]{7, 17});
+
+            break;
+        }
+
+        timeSystem.endFrame();
+    }
+
+    renderSystem.showCursor();
 }

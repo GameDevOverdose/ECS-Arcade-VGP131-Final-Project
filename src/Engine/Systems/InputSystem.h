@@ -15,12 +15,11 @@ public:
 
     void Update();
     KeyState getKeyState(char key);
+    void setKeyState(char key, KeyState state);
 
 private:
     std::unordered_map<char, KeyState> keyStates;
     std::unordered_map<char, KeyState> prevKeyStates;
-
-    void setKeyState(char key, KeyState state);
 };
 
 void InputSystem::Update() {

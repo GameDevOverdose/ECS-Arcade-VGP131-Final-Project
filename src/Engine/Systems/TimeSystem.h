@@ -26,6 +26,8 @@ public:
         std::this_thread::sleep_for(duration);
     }
 
+
+
 private:
     int targetFPS;
     std::chrono::milliseconds frameDuration;
