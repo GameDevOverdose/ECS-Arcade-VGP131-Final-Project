@@ -17,4 +17,5 @@ add_executable(Final_Project ${SOURCES}
         src/Engine/Systems/InputSystem.h
         src/Engine/Systems/CollisionSystem.h
         src/Engine/Systems/MovementSystem.h
-        src/Engine/Components/UIComponent.h)
+        src/Engine/Components/UIComponent.h
+        src/Engine/Components/AnimationComponent.h)
