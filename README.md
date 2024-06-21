@@ -42,6 +42,7 @@ A project like this was a huge undertaking for us, especially in such a small ti
 ## Game
 
 - The game part of the code is arguably the messiest in the entire project, because it was the last part of the project that we worked on before submitting it. The game's files should be separated into different files.
+- The Arcade Games, especially Extra Terrestrial, have a lot of bugs and not only that but several parts of the code do not have the best implementation and have a lot of contrivances to make the game function well enough. The goal would be to make the ECS simple, modularize the game's code structure and simplify as well as clean up the game's code and workings in order to make removing bugs simpler, as well as allow the project to be scalable.
 
 
 # Game Demonstration (Gameplay) 🎮
