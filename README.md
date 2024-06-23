@@ -33,10 +33,10 @@ A project like this was a huge undertaking for us, especially in such a small ti
 
 ## Engine
 
-- The Entity class is not as friendly as it should be, getting components and making changes to than should be a lot simpler.
-- The Sprite System as well as the Collision System are a bit strange for a lack of a better term, and should be much more structured to be intuitive.
+- The Entity class is not as friendly as it should be, getting components and making changes to them should be a lot simpler.
+- The Rendering System as well as the Collision System are a bit strange for a lack of a better term, and should be much more structured to be intuitive.
 - Systems like Rendering and Collision iterate over vectors with the entities that have to be manually pushed by the game developer, whereas something like this should be handled automatically by the Engine. Ideally, it should iterate over all entities and then  select and store references to the ones with components it should run a system on.
-- Similar to the last point, the render system renders entities that were pushed last, last (so on top). I instead wanted to change the Transform component to store Transform as transformXYZ[3] instead of just transformXY[2] so the Render System would then Render entities with higher Z values on top. It makes the System easier to use as well as more scalable.
+- Similar to the last point, the render system renders entities that were pushed last, last (so on top). I instead wanted to change the Transform component to store Transform as positionXYZ[3] instead of just positionXY[2] so the Render System would then Render entities with higher Z values on top, making the System easier to use as well as more scalable.
 - Should use Smart Pointers for better memory management.
 
 ## Game
