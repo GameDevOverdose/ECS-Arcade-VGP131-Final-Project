@@ -1,6 +1,10 @@
 #pragma once
 
+#ifdef _WIN32
 #include <Windows.h> // for Sleep
+#else
+#include <ncurses.h> // for rendering
+#endif
 
 #include "../Entity.h"
 #include "System.h"
@@ -11,6 +15,21 @@
 class RenderSystem : public System {
 public:
     std::vector<Entity*> entitiesToRender;
+
+    RenderSystem() {
+#ifndef _WIN32
+        initscr();
+        noecho();
+        curs_set(FALSE);
+        nodelay(stdscr, TRUE);
+#endif
+    }
+
+    ~RenderSystem() {
+#ifndef _WIN32
+        endwin();
+#endif
+    }
 
     void addEntities(std::vector <Entity*> entity)
     {
@@ -76,7 +95,11 @@ public:
 
     void clearScreen()
     {
+#ifdef _WIN32
         system("cls");
+#else
+        clear();
+#endif
     }
 
     void RenderScreen(int screenWidth, int screenHeight, int screenWidthLeft, int screenWidthRight, int screenHeightUpper, int screenHeightLower)
@@ -187,15 +210,22 @@ public:
         if (screenChanged)
         {
             clearScreen();
-            for (const auto& row : fullScreen)
+            for (int y = 0; y < fullScreen.size(); ++y)
             {
-                for (const auto& ch : row)
+                for (int x = 0; x < fullScreen[y].size(); ++x)
                 {
-                    std::cout << ch;
+#ifdef _WIN32
+                    std::cout << fullScreen[y][x];
+#else
+                    mvaddch(y, x, fullScreen[y][x]);
+#endif
                 }
-                std::cout << std::endl;
             }
+#ifdef _WIN32
             std::cout << std::flush;
+#else
+            refresh();
+#endif
         }
 
         previousScreen = fullScreen;
@@ -212,9 +242,13 @@ public:
                     int startY = position->positionXY[1];
                     std::string content = uiComponent->getContent();
 
+#ifdef _WIN32
                     // Move the cursor to the start of each line of the entity's position
                     std::cout << "\033[" << startY + 1 << ";" << startX + 1 << "H";
                     std::cout << content << std::endl;
+#else
+                    mvprintw(startY, startX, "%s", content.c_str());
+#endif
                 } else {
                     if (uiComponent == nullptr) {
                         std::cerr << "UIComponent not found in the entity." << std::endl;
@@ -226,5 +260,10 @@ public:
                 }
             }
         }
+#ifdef _WIN32
+        std::cout << std::flush;
+#else
+        refresh();
+#endif
     }
 };

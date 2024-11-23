@@ -151,10 +151,12 @@ Entity* GameState(std::string content, std::array<int, 2> offset)
 
 bool ExitArcadeGame()
 {
-    if(inputSystem.getKeyState('q') == InputSystem::KEY_DOWN)
+    if(inputSystem.getKeyState('q') == InputSystem::KEY_STATE_DOWN)
     {
         return true;
     }
+
+    return false;
 }
 
 Entity* ETSpawnEnemy(int screenOffset[2], int enemyType)
@@ -274,10 +276,10 @@ void ETHandlePlayerInput(Entity& player, Bullet& bullet)
 {
     std::vector<int> triggerObjectsID = {};
     std::vector<bool> triggers;
-    movementSystem.MoveInput(player, 'a', new int[2] {-1, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_HELD);
-    movementSystem.MoveInput(player, 'd', new int[2] {1, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_HELD);
+    movementSystem.MoveInput(player, 'a', new int[2] {-1, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_STATE_HELD);
+    movementSystem.MoveInput(player, 'd', new int[2] {1, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_STATE_HELD);
 
-    if (inputSystem.getKeyState('b') == InputSystem::KEY_DOWN && !bullet.bulletActive)
+    if (inputSystem.getKeyState('b') == InputSystem::KEY_STATE_DOWN && !bullet.bulletActive)
     {
         PositionComponent* playerPosition = static_cast<PositionComponent*>(player.getComponent(typeid(PositionComponent).name()));
         bullet.createBullet(playerPosition->positionXY[0] + 1, playerPosition->positionXY[1] - 1);
@@ -489,11 +491,11 @@ void CroakHandlePlayerInput(Entity& player, bool &reachedTop)
     std::vector<bool> triggers;
     triggers.resize(ecs.getHighestEntityId() + 3);
 
-    movementSystem.MoveInput(player, 'w', new int[2] {0, -1}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_DOWN);
-    movementSystem.MoveInput(player, 'w', new int[2] {0, -1}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_HELD);
-    movementSystem.MoveInput(player, 'a', new int[2] {-3, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_DOWN);
-    movementSystem.MoveInput(player, 's', new int[2] {0, 1}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_DOWN);
-    movementSystem.MoveInput(player, 'd', new int[2] {3, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_DOWN);
+    movementSystem.MoveInput(player, 'w', new int[2] {0, -1}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_STATE_DOWN);
+    movementSystem.MoveInput(player, 'w', new int[2] {0, -1}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_STATE_HELD);
+    movementSystem.MoveInput(player, 'a', new int[2] {-3, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_STATE_DOWN);
+    movementSystem.MoveInput(player, 's', new int[2] {0, 1}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_STATE_DOWN);
+    movementSystem.MoveInput(player, 'd', new int[2] {3, 0}, collisionSystem, triggerObjectsID, triggers, InputSystem::KEY_STATE_DOWN);
 
     if(triggers[arcadeBoundaryTop.getId()])
     {
@@ -828,22 +830,22 @@ void SerpentGameScene()
 
         // GAME LOGIC
 
-        if (inputSystem.getKeyState('w') == InputSystem::KEY_HELD)
+        if (inputSystem.getKeyState('w') == InputSystem::KEY_STATE_HELD)
         {
             lastInput = input;
             input = 'w';
         }
-        else if (inputSystem.getKeyState('s') == InputSystem::KEY_HELD)
+        else if (inputSystem.getKeyState('s') == InputSystem::KEY_STATE_HELD)
         {
             lastInput = input;
             input = 's';
         }
-        else if (inputSystem.getKeyState('a') == InputSystem::KEY_HELD)
+        else if (inputSystem.getKeyState('a') == InputSystem::KEY_STATE_HELD)
         {
             lastInput = input;
             input = 'a';
         }
-        else if (inputSystem.getKeyState('d') == InputSystem::KEY_HELD)
+        else if (inputSystem.getKeyState('d') == InputSystem::KEY_STATE_HELD)
         {
             lastInput = input;
             input = 'd';
@@ -986,19 +988,19 @@ void PlayerInput(Entity& player, bool &movingRight, std::vector<int> triggerObje
 
     SpriteComponent* sprite = static_cast<SpriteComponent*>(player.getComponent(typeid(SpriteComponent).name()));
 
-    if (inputSystem.getKeyState('a') == InputSystem::KEY_HELD && movingRight == true)
+    if (inputSystem.getKeyState('a') == InputSystem::KEY_STATE_HELD && movingRight == true)
     {
         sprite->flipSpriteHorizontally();
         movingRight = false;
     }
-    else if (inputSystem.getKeyState('d') == InputSystem::KEY_HELD && movingRight == false)
+    else if (inputSystem.getKeyState('d') == InputSystem::KEY_STATE_HELD && movingRight == false)
     {
         sprite->flipSpriteHorizontally();
         movingRight = true;
     }
 
-    movementSystem.MoveInput(player, 'a', new int[2] {-3, 0}, collisionSystem, triggerObjectsID, collisions, InputSystem::KEY_HELD);
-    movementSystem.MoveInput(player, 'd', new int[2] {3, 0}, collisionSystem, triggerObjectsID, collisions, InputSystem::KEY_HELD);
+    movementSystem.MoveInput(player, 'a', new int[2] {-3, 0}, collisionSystem, triggerObjectsID, collisions, InputSystem::KEY_STATE_HELD);
+    movementSystem.MoveInput(player, 'd', new int[2] {3, 0}, collisionSystem, triggerObjectsID, collisions, InputSystem::KEY_STATE_HELD);
 
     PositionComponent* playerPosition = static_cast<PositionComponent*>(player.getComponent(typeid(PositionComponent).name()));
     triggers = collisionSystem.wouldCollide(player, new int[2] {playerPosition->positionXY[0], playerPosition->positionXY[1]});
@@ -1007,7 +1009,7 @@ void PlayerInput(Entity& player, bool &movingRight, std::vector<int> triggerObje
     {
         if(firstCutsceneOver)
         {
-            if(inputSystem.getKeyState('c') == InputSystem::KEY_DOWN)
+            if(inputSystem.getKeyState('c') == InputSystem::KEY_STATE_DOWN)
             {
                 if (triggers[triggerObjectsID[0]])
                 {
@@ -1148,7 +1150,7 @@ bool StartingCutscene(Entity &dialogueUI, bool &cutsceneActivated, int &dialogue
 
         ScreenCenter(dialogueUI, dialogueOffset[dialogueCount]);
 
-        if(inputSystem.getKeyState('t') == InputSystem::KEY_DOWN)
+        if(inputSystem.getKeyState('t') == InputSystem::KEY_STATE_DOWN)
         {
             dialogueCount++;
         }
@@ -1275,7 +1277,7 @@ void EndingCutscene(Entity &dialogueUI, bool &cutsceneActivated, int &dialogueCo
 
         ScreenCenter(dialogueUI, dialogueOffset[dialogueCount]);
 
-        if(inputSystem.getKeyState('t') == InputSystem::KEY_DOWN)
+        if(inputSystem.getKeyState('t') == InputSystem::KEY_STATE_DOWN)
         {
             dialogueCount++;
         }
@@ -1637,12 +1639,12 @@ void HubScene(int playerStartPos[2])
 
         if(onDialogueTrigger == true)
         {
-            if (inputSystem.getKeyState('t') == InputSystem::KEY_DOWN)
+            if (inputSystem.getKeyState('t') == InputSystem::KEY_STATE_DOWN)
             {
                 firstCutsceneOver = StartingCutscene(*cutsceneDialogue, cutsceneActivated, dialogueCount);
             }
 
-            if(arcadesFinished && inputSystem.getKeyState('t') == InputSystem::KEY_DOWN)
+            if(arcadesFinished && inputSystem.getKeyState('t') == InputSystem::KEY_STATE_DOWN)
             {
                 EndingCutscene(*cutsceneDialogue, cutsceneActivated, dialogueCount);
                 exit(0);
@@ -1714,7 +1716,7 @@ int main()
         // Render screen
         renderSystem.RenderScreen(screenWidth, screenHeight, 0, screenWidth, 0, screenHeight);
 
-        if(inputSystem.getKeyState('e') == InputSystem::KEY_DOWN)
+        if(inputSystem.getKeyState('e') == InputSystem::KEY_STATE_DOWN)
         {
             SwitchScene();
 

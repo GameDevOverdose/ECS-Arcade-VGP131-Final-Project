@@ -1,16 +1,20 @@
 #pragma once
 
+#ifdef _WIN32
 #include <conio.h>
+#else
+#include <ncurses.h>
+#endif
 #include <unordered_map>
 
 class InputSystem
 {
 public:
     enum KeyState {
-        KEY_UP,
-        KEY_DOWN,
-        KEY_HELD,
-        KEY_RELEASED
+        KEY_STATE_UP,
+        KEY_STATE_DOWN,
+        KEY_STATE_HELD,
+        KEY_STATE_RELEASED
     };
 
     void Update();
@@ -25,21 +29,27 @@ private:
 void InputSystem::Update() {
     prevKeyStates = keyStates;
 
+#if _WIN32
     while (_kbhit()) {
         char key = _getch();
-        keyStates[key] = KEY_DOWN;
+        keyStates[key] = KEY_STATE_DOWN;
     }
+#else
+    if (int key = getch(); key != ERR) {
+        keyStates[key] = KEY_STATE_DOWN;
+    }
+#endif
 
     for (auto& [key, state] : keyStates) {
-        if (state == KEY_DOWN) {
-            if (prevKeyStates[key] == KEY_DOWN || prevKeyStates[key] == KEY_HELD) {
-                keyStates[key] = KEY_HELD;
+        if (state == KEY_STATE_DOWN) {
+            if (prevKeyStates[key] == KEY_STATE_DOWN || prevKeyStates[key] == KEY_STATE_HELD) {
+                keyStates[key] = KEY_STATE_HELD;
             }
         } else {
-            if (prevKeyStates[key] == KEY_DOWN || prevKeyStates[key] == KEY_HELD) {
-                keyStates[key] = KEY_RELEASED;
+            if (prevKeyStates[key] == KEY_STATE_DOWN || prevKeyStates[key] == KEY_STATE_HELD) {
+                keyStates[key] = KEY_STATE_RELEASED;
             } else {
-                keyStates[key] = KEY_UP;
+                keyStates[key] = KEY_STATE_UP;
             }
         }
     }
@@ -49,7 +59,7 @@ InputSystem::KeyState InputSystem::getKeyState(char key) {
     if (keyStates.find(key) != keyStates.end()) {
         return keyStates[key];
     } else {
-        return KEY_UP;
+        return KEY_STATE_UP;
     }
 }
 

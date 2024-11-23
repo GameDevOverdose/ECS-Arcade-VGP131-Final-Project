@@ -1,6 +1,6 @@
 #pragma once
 
-#include <xstring>
+#include <string>
 #include "Component.h"
 
 class UIComponent : public Component
