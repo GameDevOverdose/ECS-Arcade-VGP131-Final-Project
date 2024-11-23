@@ -19,3 +19,10 @@ add_executable(Final_Project ${SOURCES}
         src/Engine/Systems/MovementSystem.h
         src/Engine/Components/UIComponent.h
         src/Engine/Components/AnimationComponent.h)
+
+# Find Curses
+if (APPLE)
+    find_package(Curses REQUIRED)
+    include_directories(${CURSES_INCLUDE_DIR})
+    target_link_libraries(Final_Project ${CURSES_LIBRARIES})
+endif()
